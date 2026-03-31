@@ -1,0 +1,13 @@
+구조 설명
+
+- app.py: 라우트와 샘플 데이터
+- templates: HTML 화면
+- static: CSS
+- requirements.txt: 패키지
+- vercel.json: 배포 설정
+
+우선순위
+1. 프로젝트 목록 화면 개선
+2. 프로젝트 상세 화면 개선
+3. 수정 화면 추가
+4. 데이터 저장 구조 연결

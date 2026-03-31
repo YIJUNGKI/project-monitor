@@ -1,0 +1,586 @@
+{% extends 'base.html' %}
+{% block title %}프로젝트 상세{% endblock %}
+{% block content %}
+<section class="card detail-top {% if project.is_delayed %}detail-delayed{% endif %}">
+  <div>
+    <div class="project-code-badge">{{ project.code }}</div>
+    <h1>{{ project.name }}</h1>
+
+    {% if is_master %}
+<div style="margin: 10px 0 14px 0; display: flex; gap: 8px; align-items: center;">
+  <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-secondary btn-sm">기본정보 수정</a>
+
+  <form method="post"
+        action="{{ url_for('project_delete', project_id=project.id) }}"
+        style="display:inline;"
+        onsubmit="return confirm('정말 삭제하시겠습니까?');">
+    <button type="submit"
+            class="btn btn-sm"
+            style="background:#dc2626; color:#fff; border-color:#dc2626;">
+      삭제
+    </button>
+  </form>
+</div>
+{% endif %}
+    <p>고객사: {{ project.customer }} / 설치위치: {{ project.location }}</p>
+    <p>수주일자: {{ project.order_date }} / 납기일: {{ project.due_date }}</p>
+    <p>PM: {{ project.pm_name }} / 현재단계: {{ project.current_stage_display }}</p>
+   </div>
+  <div class="detail-side">
+  {% set has_delay = project.is_delayed %}
+  {% set has_missing = project.is_missing %}
+
+  {% if project.status == '승인대기' %}
+    <span class="badge badge-승인대기">승인대기</span>
+
+  {% elif has_delay and has_missing %}
+    <span class="badge badge-지연누락">지연·누락</span>
+
+  {% elif has_delay %}
+    <span class="badge badge-지연">지연</span>
+
+  {% elif has_missing %}
+    <span class="badge badge-누락">누락</span>
+
+  {% elif project.status == '완료' %}
+    <span class="badge badge-완료">완료</span>
+
+  {% elif project.status == '해당없음' %}
+    <span class="badge badge-해당없음">해당없음</span>
+
+  {% else %}
+    <span class="badge badge-진행">진행</span>
+  {% endif %}
+
+  <div class="detail-progress">
+    <span>진행률</span>
+    <strong>{{ project.progress_text }}</strong>
+    <div class="progress-track detail-progress-track">
+      <div class="progress-fill progress-fill-{{ project.progress_color }}" style="width: {{ project.progress_percent }}%;"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="card">
+  <form method="post" action="/projects/{{ project.id }}/update">
+
+    <div class="section-header-inline">
+      <div class="section-header-left">
+        <h2>단계별 현황</h2>
+      </div>
+
+      <div class="team-mini-box">
+        <div class="team-mini-head">
+          <div>
+            <p class="team-mini-guide">4. 팀구성 단계에서 생관 담당자가 입력합니다.</p>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="add-team-row">+ 추가</button>
+        </div>
+
+        <div class="team-mini-table-wrap">
+          <table class="team-mini-table">
+            <thead>
+              <tr>
+                <th>PM</th>
+                <th>설계</th>
+                <th>기계</th>
+                <th>제어</th>
+                <th>영업</th>
+                <th class="team-remove-col"></th>
+              </tr>
+            </thead>
+            <tbody id="team-table-body">
+              {% if team_rows %}
+                {% for row in team_rows %}
+                <tr>
+                  <td><input type="text" name="team_pm[]" value="{{ row.pm or '' }}"></td>
+                  <td><input type="text" name="team_design[]" value="{{ row.design or '' }}"></td>
+                  <td><input type="text" name="team_machine[]" value="{{ row.machine or '' }}"></td>
+                  <td><input type="text" name="team_control[]" value="{{ row.control or '' }}"></td>
+                  <td><input type="text" name="team_sales[]" value="{{ row.sales or '' }}"></td>
+                  <td class="team-remove-col">
+                    <button type="button" class="team-remove-btn">×</button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td><input type="text" name="team_pm[]" value=""></td>
+                  <td><input type="text" name="team_design[]" value=""></td>
+                  <td><input type="text" name="team_machine[]" value=""></td>
+                  <td><input type="text" name="team_control[]" value=""></td>
+                  <td><input type="text" name="team_sales[]" value=""></td>
+                  <td class="team-remove-col">
+                    <button type="button" class="team-remove-btn">×</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="text" name="team_pm[]" value=""></td>
+                  <td><input type="text" name="team_design[]" value=""></td>
+                  <td><input type="text" name="team_machine[]" value=""></td>
+                  <td><input type="text" name="team_control[]" value=""></td>
+                  <td><input type="text" name="team_sales[]" value=""></td>
+                  <td class="team-remove-col">
+                    <button type="button" class="team-remove-btn">×</button>
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="detail-stage-table">
+        <thead>
+          <tr>
+            <th>단계</th>
+            <th>수행주체</th>
+            <th>계획일</th>
+            <th>실적일</th>
+            <th>승인일(품질팀)</th>
+            <th>비고</th>
+            <th>해당없음</th>
+            <th>상태</th>
+            <th>작업</th>
+            <th>이력</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stage in stages %}
+          <tr
+  class="
+    detail-stage-row
+    {% if stage.status == '승인대기' %}detail-row-approval{% endif %}
+    {% if stage.status == '완료' %}detail-row-complete{% endif %}
+    {% if stage.status == '해당없음' %}detail-row-na{% endif %}
+  "
+>
+  <td>{{ stage.stage_order }}. {{ stage.stage_name }}</td>
+
+  <td>
+    <input
+      type="text"
+      name="assignee_{{ stage.stage_order }}"
+      value="{{ stage.assignee_name or '' }}"
+      readonly
+      style="width: 100%; height: 36px; background: #f3f4f6;"
+    >
+  </td>
+
+  <td>
+    <input
+      type="date"
+      name="planned_{{ stage.stage_order }}"
+      value="{{ stage.planned_date or '' }}"
+      class="lock-target history-date-input"
+      data-stage-order="{{ stage.stage_order }}"
+      data-field-name="planned_date"
+      data-field-label="계획일"
+      data-old-value="{{ stage.planned_date or '' }}"
+      style="width: 100%; height: 36px;"
+    >
+    <input type="hidden" name="changed_by_planned_{{ stage.stage_order }}" value="">
+    <input type="hidden" name="change_reason_planned_{{ stage.stage_order }}" value="">
+  </td>
+
+  <td>
+    <input
+      type="date"
+      name="actual_{{ stage.stage_order }}"
+      value="{{ stage.actual_date or '' }}"
+      class="lock-target history-date-input"
+      data-stage-order="{{ stage.stage_order }}"
+      data-field-name="actual_date"
+      data-field-label="실적일"
+      data-old-value="{{ stage.actual_date or '' }}"
+      style="width: 100%; height: 36px;"
+    >
+    <input type="hidden" name="changed_by_actual_{{ stage.stage_order }}" value="">
+    <input type="hidden" name="change_reason_actual_{{ stage.stage_order }}" value="">
+  </td>
+
+  <td class="{% if stage.status == '승인대기' %}approval-cell-highlight{% endif %}">
+  <input
+    type="date"
+    name="approval_{{ stage.stage_order }}"
+    value="{{ stage.approval_date or '' }}"
+    class="lock-target"
+    style="width: 100%; height: 36px;"
+    readonly
+    tabindex="-1"
+  >
+</td>
+
+  <td>
+    <input
+      type="text"
+      name="note_{{ stage.stage_order }}"
+      value="{{ stage.note or '' }}"
+      class="lock-target"
+      placeholder="{% if stage.stage_order|string == '4' %}오른쪽 상단에 구성원 입력{% elif stage.stage_order|string == '7-1' %}작성 체크시트 기입 ex) 설계업무 / 외주설계{% elif stage.stage_order|string == '8' %}선정업체 기입 ex) 조립:CMT, 두원 / 설치:CMT / 제어:나라 / 프로그램:국동/유승{% endif %}"
+      style="width: 100%; height: 36px;"
+    >
+  </td>
+
+  <td>
+    <label style="display:inline-flex; align-items:center; gap:6px;">
+      <input
+        type="checkbox"
+        name="not_applicable_{{ stage.stage_order }}"
+        value="Y"
+        class="na-checkbox"
+        {% if stage.is_not_applicable %}checked{% endif %}
+      >
+      해당없음
+    </label>
+  </td>
+
+  <td>
+    <span class="badge badge-{{ stage.status }}">{{ stage.status }}</span>
+  </td>
+
+  <td>
+  {% if stage.status == "승인대기" and is_master %}
+    <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
+      <button
+        type="submit"
+        formaction="/projects/{{ project.id }}/approve/{{ stage.stage_order }}"
+        formmethod="post"
+        class="btn btn-approve"
+        onclick="return confirm('저장된 실적일 기준으로 승인합니다. 실적일을 방금 수정했다면 먼저 저장하세요.');"
+      >
+        승인
+      </button>
+      <span style="font-size:12px; color:#6b7280;">실적일 수정 후에는 먼저 저장</span>
+    </div>
+
+  {% elif stage.approval_date and is_master %}
+    <button
+      type="submit"
+      formaction="/projects/{{ project.id }}/approve-cancel/{{ stage.stage_order }}"
+      formmethod="post"
+      class="btn btn-secondary btn-sm"
+      onclick="return confirm('승인을 취소하시겠습니까?');"
+    >
+      승인취소
+    </button>
+
+  {% else %}
+    <span class="dash">-</span>
+  {% endif %}
+</td>
+
+  <td>
+    <button
+      type="button"
+      class="btn btn-secondary btn-sm history-view-btn"
+      data-project-id="{{ project.id }}"
+      data-stage-order="{{ stage.stage_order }}"
+      data-stage-name="{{ stage.stage_name }}"
+    >
+      이력보기
+    </button>
+  </td>
+</tr>          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+  <button type="submit" class="btn btn-primary">저장</button>
+</div>
+
+<div id="change-history-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:520px; max-width:92%; border-radius:12px; padding:20px;">
+    <h3 style="margin-top:0;">변경 사유 입력</h3>
+
+    <div style="margin-bottom:10px;"><strong>단계:</strong> <span id="modal-stage-name"></span></div>
+    <div style="margin-bottom:10px;"><strong>변경항목:</strong> <span id="modal-field-label"></span></div>
+    <div style="margin-bottom:10px;"><strong>변경전:</strong> <span id="modal-old-value"></span></div>
+    <div style="margin-bottom:16px;"><strong>변경후:</strong> <span id="modal-new-value"></span></div>
+
+    <div style="margin-bottom:12px;">
+      <label for="modal-changed-by"><strong>변경자</strong></label>
+      <input type="text" id="modal-changed-by" style="width:100%; height:38px; margin-top:6px;" placeholder="이름 입력">
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label for="modal-change-reason"><strong>변경사유</strong></label>
+      <textarea id="modal-change-reason" rows="4" style="width:100%; margin-top:6px;" placeholder="변경 사유 입력"></textarea>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" class="btn btn-secondary" id="modal-cancel-btn">취소</button>
+      <button type="button" class="btn btn-primary" id="modal-confirm-btn">확인</button>
+    </div>
+  </div>
+</div>
+
+<div id="history-list-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:720px; max-width:94%; border-radius:12px; padding:20px; max-height:80vh; overflow:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0;">변경 이력</h3>
+      <button type="button" class="btn btn-secondary btn-sm" id="history-close-btn">닫기</button>
+    </div>
+
+    <div id="history-list-body">
+      <p class="muted">이력을 불러오는 중입니다.</p>
+    </div>
+  </div>
+</div>
+</form>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const rows = document.querySelectorAll('.detail-stage-row');
+  let pendingChange = null;
+
+  const changeModal = document.getElementById('change-history-modal');
+  const modalStageName = document.getElementById('modal-stage-name');
+  const modalFieldLabel = document.getElementById('modal-field-label');
+  const modalOldValue = document.getElementById('modal-old-value');
+  const modalNewValue = document.getElementById('modal-new-value');
+  const modalChangedBy = document.getElementById('modal-changed-by');
+  const modalChangeReason = document.getElementById('modal-change-reason');
+  const modalCancelBtn = document.getElementById('modal-cancel-btn');
+  const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+
+  rows.forEach(function (row) {
+    const checkbox = row.querySelector('.na-checkbox');
+    if (!checkbox) return;
+
+    const targets = row.querySelectorAll('.lock-target');
+
+    function updateRowLock() {
+  const isCompleteRow = row.classList.contains('detail-row-complete');
+  const isNaRow = checkbox.checked;
+
+  targets.forEach(function (input) {
+    if (isCompleteRow) {
+      input.disabled = false;
+      input.readOnly = true;
+      input.classList.add('row-readonly');
+    } else if (isNaRow) {
+      input.disabled = true;
+      input.readOnly = false;
+      input.classList.remove('row-readonly');
+    } else {
+      input.disabled = false;
+      input.readOnly = false;
+      input.classList.remove('row-readonly');
+    }
+  });
+
+  if (checkbox) {
+    checkbox.disabled = isCompleteRow;
+  }
+
+  row.classList.toggle('detail-row-na', isNaRow);
+}
+
+    checkbox.addEventListener('change', updateRowLock);
+    updateRowLock();
+  });
+
+  function openChangeModal(input) {
+    const row = input.closest('tr');
+    const stageCell = row ? row.querySelector('td:first-child') : null;
+
+    pendingChange = {
+      input: input,
+      stageOrder: input.dataset.stageOrder,
+      fieldName: input.dataset.fieldName,
+      fieldLabel: input.dataset.fieldLabel,
+      oldValue: input.dataset.oldValue || '',
+      newValue: input.value || '',
+      stageNameText: stageCell ? stageCell.textContent.trim() : ''
+    };
+
+    modalStageName.textContent = pendingChange.stageNameText || '-';
+    modalFieldLabel.textContent = pendingChange.fieldLabel || '-';
+    modalOldValue.textContent = pendingChange.oldValue || '-';
+    modalNewValue.textContent = pendingChange.newValue || '-';
+    modalChangedBy.value = '';
+    modalChangeReason.value = '';
+
+    changeModal.style.display = 'flex';
+  }
+
+  function closeChangeModal(restoreOldValue) {
+    if (restoreOldValue && pendingChange && pendingChange.input) {
+      pendingChange.input.value = pendingChange.oldValue;
+    }
+
+    pendingChange = null;
+    changeModal.style.display = 'none';
+  }
+
+  document.querySelectorAll('.history-date-input').forEach(function (input) {
+    input.addEventListener('change', function () {
+      const oldValue = this.dataset.oldValue || '';
+      const newValue = this.value || '';
+
+      if (oldValue === newValue) {
+        return;
+      }
+
+      openChangeModal(this);
+    });
+  });
+
+  modalCancelBtn.addEventListener('click', function () {
+    closeChangeModal(true);
+  });
+
+  modalConfirmBtn.addEventListener('click', function () {
+    if (!pendingChange) return;
+
+    const changedBy = modalChangedBy.value.trim();
+    const changeReason = modalChangeReason.value.trim();
+
+    if (!changedBy) {
+      alert('변경자를 입력하세요.');
+      modalChangedBy.focus();
+      return;
+    }
+
+    if (!changeReason) {
+      alert('변경 사유를 입력하세요.');
+      modalChangeReason.focus();
+      return;
+    }
+
+    const stageOrder = pendingChange.stageOrder;
+
+    if (pendingChange.fieldName === 'planned_date') {
+      const changedByInput = document.querySelector(`input[name="changed_by_planned_${stageOrder}"]`);
+      const changeReasonInput = document.querySelector(`input[name="change_reason_planned_${stageOrder}"]`);
+
+      if (changedByInput) changedByInput.value = changedBy;
+      if (changeReasonInput) changeReasonInput.value = changeReason;
+    }
+
+    if (pendingChange.fieldName === 'actual_date') {
+      const changedByInput = document.querySelector(`input[name="changed_by_actual_${stageOrder}"]`);
+      const changeReasonInput = document.querySelector(`input[name="change_reason_actual_${stageOrder}"]`);
+
+      if (changedByInput) changedByInput.value = changedBy;
+      if (changeReasonInput) changeReasonInput.value = changeReason;
+    }
+
+    pendingChange.input.dataset.oldValue = pendingChange.newValue;
+    closeChangeModal(false);
+  });
+
+  changeModal.addEventListener('click', function (e) {
+    if (e.target === changeModal) {
+      closeChangeModal(true);
+    }
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const addBtn = document.getElementById('add-team-row');
+  const tbody = document.getElementById('team-table-body');
+
+  function bindRemoveButtons() {
+    document.querySelectorAll('.team-remove-btn').forEach(function (btn) {
+      btn.onclick = function () {
+        const rows = tbody.querySelectorAll('tr');
+        if (rows.length <= 1) return;
+        btn.closest('tr').remove();
+      };
+    });
+  }
+
+  function addRow() {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" name="team_pm[]" value=""></td>
+      <td><input type="text" name="team_design[]" value=""></td>
+      <td><input type="text" name="team_machine[]" value=""></td>
+      <td><input type="text" name="team_control[]" value=""></td>
+      <td><input type="text" name="team_sales[]" value=""></td>
+      <td class="team-remove-col"><button type="button" class="team-remove-btn">×</button></td>
+    `;
+    tbody.appendChild(tr);
+    bindRemoveButtons();
+  }
+
+  if (addBtn && tbody) {
+    addBtn.addEventListener('click', addRow);
+    bindRemoveButtons();
+  }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const historyModal = document.getElementById('history-list-modal');
+  const historyBody = document.getElementById('history-list-body');
+  const historyCloseBtn = document.getElementById('history-close-btn');
+
+  document.querySelectorAll('.history-view-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const projectId = this.dataset.projectId;
+      const stageOrder = this.dataset.stageOrder;
+      const stageName = this.dataset.stageName;
+
+      historyBody.innerHTML = `<p><strong>${stageOrder}. ${stageName}</strong></p><p class="muted">이력을 불러오는 중입니다.</p>`;
+      historyModal.style.display = 'flex';
+
+      fetch(`/projects/${projectId}/history/${stageOrder}`)
+        .then(function (res) {
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data.ok || !data.items) {
+            historyBody.innerHTML = '<p>이력 조회에 실패했습니다.</p>';
+            return;
+          }
+
+          if (data.items.length === 0) {
+            historyBody.innerHTML = `<p><strong>${stageOrder}. ${stageName}</strong></p><p>이력이 없습니다.</p>`;
+            return;
+          }
+
+          let html = `<p><strong>${stageOrder}. ${stageName}</strong></p>`;
+
+          data.items.forEach(function (item) {
+            html += `
+              <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px; margin-bottom:12px;">
+                <div style="margin-bottom:6px;"><strong>변경자</strong>: ${item.changed_by || '-'}</div>
+                <div style="margin-bottom:6px;"><strong>변경일시</strong>: ${item.changed_at || '-'}</div>
+                <div style="margin-bottom:6px;"><strong>변경항목</strong>: ${item.field_label || '-'}</div>
+                <div style="margin-bottom:6px;"><strong>변경전</strong>: ${item.old_value || '-'}</div>
+                <div style="margin-bottom:6px;"><strong>변경후</strong>: ${item.new_value || '-'}</div>
+                <div><strong>변경사유</strong>: ${item.change_reason || '-'}</div>
+              </div>
+            `;
+          });
+
+          historyBody.innerHTML = html;
+        })
+        .catch(function () {
+          historyBody.innerHTML = '<p>이력 조회 중 오류가 발생했습니다.</p>';
+        });
+    });
+  });
+
+  historyCloseBtn.addEventListener('click', function () {
+    historyModal.style.display = 'none';
+  });
+
+  historyModal.addEventListener('click', function (e) {
+    if (e.target === historyModal) {
+      historyModal.style.display = 'none';
+    }
+  });
+});
+</script>
+{% endblock %}

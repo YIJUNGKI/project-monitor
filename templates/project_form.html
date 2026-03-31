@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>{% if project %}프로젝트 수정{% else %}프로젝트 등록{% endif %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        .wrap { max-width: 800px; margin: 0 auto; }
+        .row { margin-bottom: 14px; }
+        label { display: block; font-weight: bold; margin-bottom: 6px; }
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .actions { margin-top: 24px; display: flex; gap: 10px; }
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            text-decoration: none;
+            border: 1px solid #ccc;
+            background: #f5f5f5;
+            color: #222;
+            cursor: pointer;
+        }
+        .flash {
+            background: #fff3cd;
+            border: 1px solid #ffe69c;
+            padding: 10px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>{% if project %}프로젝트 수정{% else %}프로젝트 등록{% endif %}</h1>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="flash">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if project %}
+        <form method="post" action="{{ url_for('project_edit_submit', project_id=project.id) }}">
+    {% else %}
+        <form method="post" action="{{ url_for('project_create') }}">
+    {% endif %}
+
+        <div class="row">
+            <label>프로젝트 코드</label>
+            <input type="text" name="code" value="{{ project.code if project else '' }}" placeholder="비워두면 자동생성">
+        </div>
+
+        <div class="row">
+            <label>프로젝트명</label>
+            <input type="text" name="name" value="{{ project.name if project else '' }}" required>
+        </div>
+
+        <div class="row">
+            <label>고객사</label>
+            <input type="text" name="customer" value="{{ project.customer if project else '' }}">
+        </div>
+
+        <div class="row">
+            <label>설치위치</label>
+            <input type="text" name="location" value="{{ project.location if project else '' }}">
+        </div>
+
+        <div class="row">
+            <label>수주일</label>
+            <input type="date" name="order_date" value="{{ project.order_date if project and project.order_date else '' }}">
+        </div>
+
+        <div class="row">
+            <label>납기일</label>
+            <input type="date" name="due_date" value="{{ project.due_date if project and project.due_date else '' }}">
+        </div>
+
+        <div class="row">
+            <label>PM명</label>
+            <input type="text" name="pm_name" value="{{ project.pm_name if project else '' }}">
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">저장</button>
+            <a href="{{ url_for('projects') }}" class="btn">목록</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

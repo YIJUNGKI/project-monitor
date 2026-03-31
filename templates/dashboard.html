@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}대시보드{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>대시보드</h1>
+  <p>메인 화면은 요약 중심으로 두고, 프로젝트별 단계 흐름은 10개 항목 미니뷰로 압축해 보여줍니다.</p>
+</section>
+
+<section class="card-grid">
+  <a href="/projects" class="card metric-card metric-link-card">
+    <span>전체 프로젝트</span>
+    <strong>{{ summary.total }}</strong>
+  </a>
+
+  <a href="/projects?status=진행" class="card metric-card metric-link-card">
+    <span>진행</span>
+    <strong>{{ summary.in_progress }}</strong>
+  </a>
+
+  <a href="/projects?status=승인대기" class="card metric-card metric-link-card">
+    <span>승인대기</span>
+    <strong>{{ summary.approval_pending }}</strong>
+  </a>
+
+  <a href="/projects?status=완료" class="card metric-card metric-link-card">
+    <span>완료</span>
+    <strong>{{ summary.completed }}</strong>
+  </a>
+
+  <a href="/projects?status=누락" class="card metric-card metric-link-card">
+    <span>누락</span>
+    <strong>{{ summary.missing }}</strong>
+  </a>
+
+  <a href="/projects?delay=Y" class="card metric-card metric-link-card">
+    <span>지연</span>
+    <strong>{{ summary.delayed }}</strong>
+  </a>
+</section>
+
+<section class="dashboard-grid dashboard-grid-single">
+  <div class="card">
+    <div class="section-title">
+      <h2>프로젝트 현황</h2>
+    </div>
+
+    <section class="toolbar toolbar-guide-right">
+  <div class="result-count">조회 {{ projects|length }}건</div>
+
+  <div class="legend-stack-right">
+    <div class="status-legend-box">
+      <span class="status-legend-title">상태설명</span>
+      <span class="status-legend-badge status-legend-progress">진행</span>
+      <span class="status-legend-badge status-legend-approval">승인대기</span>
+      <span class="status-legend-badge status-legend-complete">완료</span>
+      <span class="status-legend-badge status-legend-delay">지연</span>
+      <span class="status-legend-badge status-legend-missing">누락</span>
+      <span class="status-legend-badge status-legend-na">해당없음</span>
+    </div>
+
+    <div class="status-legend-box stage-guide-compact-box">
+  <span class="status-legend-title">단계안내</span>
+  <div class="stage-guide-compact-list">
+    <span><strong>1.</strong>작업지시</span>
+    <span><strong>2.</strong>PM지정</span>
+    <span><strong>3.</strong>설명회</span>
+    <span><strong>4.</strong>팀구성</span>
+    <span><strong>5.</strong>착수보고</span>
+    <span><strong>6.</strong>승인협의</span>
+    <span><strong>7.</strong>점검회의</span>
+    <span><strong>7-1.</strong>체크시트</span>
+    <span><strong>8.</strong>업체선정</span>
+    <span><strong>9.</strong>완료보고</span>
+  </div>
+</div>
+</section>
+
+    <div class="table-wrap dashboard-table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>코드</th>
+            <th>프로젝트명</th>
+            <th>현재단계</th>
+            <th>진행률</th>
+            <th>단계요약</th>
+            <th>상태</th>
+            <th>상세</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for project in projects %}
+          <tr class="
+            {% if project.is_delayed %}row-delayed{% endif %}
+            {% if project.status == '승인대기' %}row-approval{% endif %}
+            {% if project.status == '완료' %}row-complete{% endif %}
+          ">
+            <td>{{ project.code }}</td>
+            <td class="project-name-cell">
+              <div class="project-name two-line-ellipsis" title="{{ project.name }}">{{ project.name }}</div>
+            </td>
+            <td>{{ project.current_stage_display }}</td>
+            <td class="progress-cell">
+              <div class="progress-wrap">
+                <div class="progress-track">
+                  <div class="progress-fill progress-fill-{{ project.progress_color }}" style="width: {{ project.progress_percent }}%;"></div>
+                </div>
+                <div class="progress-text">{{ project.progress_text }}</div>
+              </div>
+            </td>
+            <td class="mini-view-cell">
+              <div class="mini-view">
+                {% for item in project.stage_mini_view %}
+                <span class="mini-step mini-step-{{ item.color }}" title="{{ item.title }}">{{ item.label }}</span>
+                {% endfor %}
+              </div>
+            </td>
+
+            <td>
+              {% set has_delay = project.is_delayed %}
+              {% set has_missing = project.is_missing %}
+
+              {% if project.status == '승인대기' %}
+                <span class="badge badge-승인대기">승인대기</span>
+
+              {% elif has_delay and has_missing %}
+                <span class="badge badge-지연누락">지연·누락</span>
+
+              {% elif has_delay %}
+                <span class="badge badge-지연">지연</span>
+
+              {% elif has_missing %}
+                <span class="badge badge-누락">누락</span>
+
+              {% elif project.status == '완료' %}
+                <span class="badge badge-완료">완료</span>
+
+              {% elif project.status == '해당없음' %}
+                <span class="badge badge-해당없음">해당없음</span>
+
+              {% else %}
+                <span class="badge badge-진행">진행</span>
+              {% endif %}
+            </td>
+
+            <td><a href="/projects/{{ project.id }}" class="table-link">보기</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="dashboard-bottom">
+  <div class="card">
+    <div class="section-title">
+      <h2>승인 필요</h2>
+    </div>
+    <div class="delay-list">
+      {% for project in approval_pending_projects %}
+      <a href="/projects/{{ project.id }}" class="delay-item">
+        <strong>{{ project.code }}</strong>
+        <span>{{ project.name }}</span>
+        <em>{{ project.current_stage_display }} / 승인 필요</em>
+      </a>
+      {% else %}
+      <div class="empty-panel">현재 승인대기 프로젝트가 없습니다.</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

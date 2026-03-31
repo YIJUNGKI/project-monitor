@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Project Monitor{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="logo">Project Monitor</a>
+      <nav class="nav">
+  <a href="/dashboard" class="{% if request.path == '/dashboard' %}nav-link-active{% endif %}">대시보드</a>
+  <a href="/projects" class="{% if request.path.startswith('/projects') %}nav-link-active{% endif %}">프로젝트 목록</a>
+
+  {% if is_master %}
+    <span class="master-badge">마스터 모드 ON</span>
+    <form method="post" action="{{ url_for('master_logout') }}" style="display:inline;">
+      <button type="submit" class="master-nav-btn">로그아웃</button>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('master_login') }}" class="master-login-form">
+      <input
+        type="password"
+        name="master_password"
+        placeholder="마스터 비밀번호"
+        class="master-password-input"
+      >
+      <button type="submit" class="master-nav-btn">마스터 로그인</button>
+    </form>
+  {% endif %}
+</nav>
+    </div>
+  </header>
+
+  <main class="container page">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flash-wrap">
+        {% for message in messages %}
+          <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}프로젝트 목록{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>프로젝트 목록</h1>
+  <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+    <a href="{{ url_for('project_new') }}"
+       style="display:inline-block; padding:10px 14px; background:#111827; color:#fff; text-decoration:none; border-radius:8px;">
+      + 프로젝트 등록
+    </a>
+  </div>
+
+  <p>프로젝트명은 2줄로 제한하고, 7단계와 7-1단계를 분리한 10개 항목 미니뷰를 함께 표시합니다.</p>
+</section>
+
+<section class="card filter-card">
+  <form method="get" action="/projects" class="filter-form">
+    <div class="field">
+      <label for="keyword">검색</label>
+      <input id="keyword" name="keyword" type="text" value="{{ keyword }}" placeholder="코드, 프로젝트명, 고객사, PM, 단계">
+    </div>
+
+    <div class="field">
+      <label for="status">상태</label>
+      <select id="status" name="status">
+        <option value="">전체</option>
+        {% for item in status_options %}
+        <option value="{{ item }}" {% if status == item %}selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="delay">지연여부</label>
+      <select id="delay" name="delay">
+        <option value="">전체</option>
+        <option value="Y" {% if delay == 'Y' %}selected{% endif %}>지연만</option>
+        <option value="N" {% if delay == 'N' %}selected{% endif %}>정상만</option>
+      </select>
+    </div>
+
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-primary">조회</button>
+      <a href="/projects" class="btn btn-secondary">초기화</a>
+    </div>
+  </form>
+</section>
+
+<section class="toolbar">
+  <div class="result-count">조회 {{ projects|length }}건</div>
+  <div class="status-legend-box">
+    <span class="status-legend-title">상태설명</span>
+    <span class="status-legend-badge status-legend-progress">진행</span>
+    <span class="status-legend-badge status-legend-approval">승인대기</span>
+    <span class="status-legend-badge status-legend-complete">완료</span>
+    <span class="status-legend-badge status-legend-delay">지연</span>
+    <span class="status-legend-badge status-legend-missing">누락</span>
+    <span class="status-legend-badge status-legend-na">해당없음</span>
+  </div>
+</section>
+
+<section class="card">
+  <div class="table-wrap projects-table-wrap">
+    <table class="projects-table">
+      <thead>
+        <tr>
+          <th>코드</th>
+          <th>프로젝트명</th>
+          <th>고객사</th>
+          <th>설치위치</th>
+          <th>PM</th>
+          <th>현재단계</th>
+          <th>진행률</th>
+          <th>단계요약</th>
+          <th>납기일</th>
+          <th>상태</th>
+          <th>상세</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for project in projects %}
+        <tr class="
+          {% if project.is_delayed %}row-delayed{% endif %}
+          {% if project.status == '승인대기' %}row-approval{% endif %}
+          {% if project.status == '완료' %}row-complete{% endif %}
+        ">
+          <td>{{ project.code }}</td>
+          <td class="project-name-cell">
+            <div class="project-name two-line-ellipsis" title="{{ project.name }}">{{ project.name }}</div>
+          </td>
+          <td>{{ project.customer }}</td>
+          <td>{{ project.location }}</td>
+          <td>{{ project.pm_name }}</td>
+          <td>{{ project.current_stage_display }}</td>
+          <td class="progress-cell">
+            <div class="progress-wrap">
+              <div class="progress-track">
+                <div class="progress-fill progress-fill-{{ project.progress_color }}" style="width: {{ project.progress_percent }}%;"></div>
+              </div>
+              <div class="progress-text">{{ project.progress_text }}</div>
+            </div>
+          </td>
+          <td class="mini-view-cell">
+            <div class="mini-view">
+              {% for item in project.stage_mini_view %}
+              <span class="mini-step mini-step-{{ item.color }}" title="{{ item.title }}">{{ item.label }}</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td>{{ project.due_date }}</td>
+
+          <td>
+            {% set has_delay = project.is_delayed %}
+            {% set has_missing = project.is_missing %}
+
+            {% if project.status == '승인대기' %}
+              <span class="badge badge-승인대기">승인대기</span>
+
+            {% elif has_delay and has_missing %}
+              <span class="badge badge-지연누락">지연·누락</span>
+
+            {% elif has_delay %}
+              <span class="badge badge-지연">지연</span>
+
+            {% elif has_missing %}
+              <span class="badge badge-누락">누락</span>
+
+            {% elif project.status == '완료' %}
+              <span class="badge badge-완료">완료</span>
+
+            {% elif project.status == '해당없음' %}
+              <span class="badge badge-해당없음">해당없음</span>
+
+            {% else %}
+              <span class="badge badge-진행">진행</span>
+            {% endif %}
+          </td>
+
+          <td><a href="/projects/{{ project.id }}">보기</a></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="11" class="empty-cell">조건에 맞는 프로젝트가 없습니다.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
