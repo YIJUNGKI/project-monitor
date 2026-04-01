@@ -211,13 +211,13 @@
 
             <td class="{% if stage.status == '승인대기' %}approval-cell-highlight{% endif %}">
               <input
-                type="date"
-                name="approval_{{ stage.stage_order }}"
-                value="{{ stage.approval_date or '' }}"
-                class="lock-target"
-                style="width: 100%; height: 36px;"
-                readonly
-                tabindex="-1"
+                  type="date"
+                  name="approval_{{ stage.stage_order }}"
+                  value="{{ stage.approval_date or '' }}"
+                  class="lock-target approval-input"
+                  style="width: 100%; height: 36px;"
+                  readonly
+                  tabindex="-1"
               >
             </td>
 
@@ -386,33 +386,35 @@ document.addEventListener('DOMContentLoaded', function () {
       const isNaChecked = checkbox.checked;
 
       targets.forEach(function (input) {
-        const isNoteInput = input.classList.contains('note-input');
+      const isNoteInput = input.classList.contains('note-input');
+      const isApprovalInput = input.classList.contains('approval-input');
 
-        if (isCompleteRow) {
-          setReadonly(input);
-          return;
+      if (isApprovalInput) {
+        setReadonly(input);
+        return;
+      }
+
+      if (isCompleteRow) {
+        setReadonly(input);
+        return;
+      }
+
+      if (savedNa) {
+        setReadonly(input);
+        return;
+      }
+
+      if (isNaChecked) {
+        if (isNoteInput) {
+          setEditable(input);
+        } else {
+          setDisabled(input);
         }
+        return;
+      }
 
-        if (savedNa) {
-           if (isMaster && input.classList.contains('note-input')) {
-             setReadonly(input);
-           } else {
-             setReadonly(input);
-           }
-           return;
-    }
-
-        if (isNaChecked) {
-          if (isNoteInput) {
-            setEditable(input);
-          } else {
-            setDisabled(input);
-          }
-          return;
-        }
-
-        setEditable(input);
-      });
+      setEditable(input); 
+    });
 
       checkbox.disabled = false;
       checkbox.dataset.locked = (isCompleteRow || (savedNa && !isMaster)) ? 'Y' : 'N';

@@ -1833,3 +1833,10 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
     width: 100%;
   }
 }
+
+.detail-stage-table .approval-input {
+  background: #f8fafc;
+  color: #94a3b8;
+  border-color: #e5e7eb;
+  cursor: default;
+}
