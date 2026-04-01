@@ -2,9 +2,20 @@ import os
 import json
 from urllib import request as urlrequest
 from urllib.parse import quote
-
-from flask import Flask, render_template, abort, request, redirect, url_for, flash, jsonify, session
 from datetime import datetime, timedelta
+
+from flask import (
+    Flask,
+    render_template,
+    abort,
+    request,
+    redirect,
+    url_for,
+    flash,
+    jsonify,
+    session,
+    g,
+)
 
 
 app = Flask(__name__)
@@ -17,30 +28,6 @@ UPSTASH_REDIS_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "").strip(
 STORE_KEY = "project_monitor:data:v1"
 
 
-# =========================
-# 기본 권한
-# =========================
-def is_master():
-    return session.get("is_master", False)
-
-
-def require_master():
-    if not is_master():
-        flash("마스터 권한이 필요합니다.")
-        return False
-    return True
-
-
-@app.context_processor
-def inject_master_flag():
-    return {
-        "is_master": session.get("is_master", False)
-    }
-
-
-# =========================
-# 마스터 단계 정의
-# =========================
 STAGE_MASTER = [
     {"stage_order": "1", "stage_name": "작업지시서"},
     {"stage_order": "2", "stage_name": "PM지정"},
@@ -68,6 +55,27 @@ REQUIRED_FIELDS_BY_STAGE = {
     "8": ["planned_date"],
     "9": ["planned_date"],
 }
+
+
+# =========================
+# 권한
+# =========================
+def is_master():
+    return session.get("is_master", False)
+
+
+def require_master():
+    if not is_master():
+        flash("마스터 권한이 필요합니다.")
+        return False
+    return True
+
+
+@app.context_processor
+def inject_master_flag():
+    return {
+        "is_master": session.get("is_master", False)
+    }
 
 
 # =========================
@@ -103,89 +111,116 @@ def empty_store():
     }
 
 
-def load_store():
+def get_store_cache():
+    if not hasattr(g, "_store_cache"):
+        g._store_cache = None
+        g._store_dirty = False
+    return g._store_cache
+
+
+def set_store_cache(store):
+    g._store_cache = store
+
+
+def mark_store_dirty():
+    g._store_dirty = True
+
+
+def is_store_dirty():
+    return getattr(g, "_store_dirty", False)
+
+
+def clear_store_dirty():
+    g._store_dirty = False
+
+
+def load_store(force_reload=False):
+    if not force_reload:
+        cached = get_store_cache()
+        if cached is not None:
+            return cached
+
     if not using_redis():
-        return empty_store()
+        store = empty_store()
+        set_store_cache(store)
+        return store
 
     raw = redis_call("GET", STORE_KEY)
     if not raw:
         store = empty_store()
-        save_store(store)
+        payload = json.dumps(store, ensure_ascii=False)
+        redis_call("SET", STORE_KEY, payload)
+        set_store_cache(store)
+        clear_store_dirty()
         return store
 
     try:
         store = json.loads(raw)
     except Exception:
         store = empty_store()
-        save_store(store)
-        return store
+        payload = json.dumps(store, ensure_ascii=False)
+        redis_call("SET", STORE_KEY, payload)
 
-    # 안전 보정
     store.setdefault("projects", [])
     store.setdefault("project_stages", {})
     store.setdefault("project_teams", {})
     store.setdefault("stage_change_history", {})
+
+    set_store_cache(store)
+    clear_store_dirty()
     return store
 
 
-def save_store(store):
+def save_store(store=None):
+    if store is None:
+        store = load_store()
+
     payload = json.dumps(store, ensure_ascii=False)
     redis_call("SET", STORE_KEY, payload)
+    set_store_cache(store)
+    clear_store_dirty()
 
 
-def load_projects():
-    return load_store()["projects"]
+@app.teardown_request
+def flush_store_if_needed(exception=None):
+    if exception is not None:
+        return
+    if is_store_dirty():
+        try:
+            save_store()
+        except Exception:
+            pass
 
 
-def save_projects(projects):
-    store = load_store()
-    store["projects"] = projects
-    save_store(store)
+def get_projects(store=None):
+    if store is None:
+        store = load_store()
+    return store["projects"]
 
 
-def load_project_stages(project_id):
-    store = load_store()
-    return store["project_stages"].get(str(project_id), [])
+def get_project_stages_map(store=None):
+    if store is None:
+        store = load_store()
+    return store["project_stages"]
 
 
-def save_project_stages(project_id, stages):
-    store = load_store()
-    store["project_stages"][str(project_id)] = stages
-    save_store(store)
+def get_project_teams_map(store=None):
+    if store is None:
+        store = load_store()
+    return store["project_teams"]
 
 
-def load_project_teams(project_id):
-    store = load_store()
-    return store["project_teams"].get(str(project_id), {
-        "team_rows": [
-            {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
-            {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
-        ]
-    })
-
-
-def save_project_teams(project_id, team_data):
-    store = load_store()
-    store["project_teams"][str(project_id)] = team_data
-    save_store(store)
-
-
-def load_stage_change_history(project_id):
-    store = load_store()
-    return store["stage_change_history"].get(str(project_id), [])
-
-
-def save_stage_change_history(project_id, rows):
-    store = load_store()
-    store["stage_change_history"][str(project_id)] = rows
-    save_store(store)
+def get_stage_change_history_map(store=None):
+    if store is None:
+        store = load_store()
+    return store["stage_change_history"]
 
 
 # =========================
 # 공통 유틸
 # =========================
-def find_project(project_id: int, include_deleted: bool = False):
-    projects = load_projects()
+def find_project(project_id: int, include_deleted: bool = False, store=None):
+    projects = get_projects(store)
     for project in projects:
         if project["id"] == project_id:
             if not include_deleted and project.get("is_deleted", False):
@@ -194,18 +229,18 @@ def find_project(project_id: int, include_deleted: bool = False):
     return None
 
 
-def get_next_project_id():
-    projects = load_projects()
+def get_next_project_id(store=None):
+    projects = get_projects(store)
     if not projects:
         return 1
     return max(project["id"] for project in projects) + 1
 
 
-def generate_project_code():
+def generate_project_code(store=None):
     year_prefix = datetime.today().strftime("%y")
     same_year_codes = []
 
-    for project in load_projects():
+    for project in get_projects(store):
         code = str(project.get("code", "")).strip()
         if code.startswith(year_prefix) and code[2:].isdigit():
             same_year_codes.append(int(code[2:]))
@@ -254,8 +289,9 @@ def add_days(date_str, days):
     return (d + timedelta(days=days)).strftime("%Y-%m-%d")
 
 
-def get_project_history(project_id: int):
-    return load_stage_change_history(project_id)
+def get_project_history(project_id: int, store=None):
+    history_map = get_stage_change_history_map(store)
+    return history_map.setdefault(str(project_id), [])
 
 
 def add_stage_change_history(
@@ -267,8 +303,9 @@ def add_stage_change_history(
     new_value,
     changed_by: str,
     change_reason: str,
+    store=None,
 ):
-    rows = load_stage_change_history(project_id)
+    rows = get_project_history(project_id, store)
     rows.append(
         {
             "stage_order": stage_order,
@@ -281,11 +318,11 @@ def add_stage_change_history(
             "changed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
     )
-    save_stage_change_history(project_id, rows)
+    mark_store_dirty()
 
 
-def get_stage_history_rows(project_id: int, stage_order: str):
-    history_rows = get_project_history(project_id)
+def get_stage_history_rows(project_id: int, stage_order: str, store=None):
+    history_rows = get_project_history(project_id, store)
     rows = [
         row for row in history_rows
         if str(row.get("stage_order")) == str(stage_order)
@@ -295,13 +332,39 @@ def get_stage_history_rows(project_id: int, stage_order: str):
     return rows
 
 
-def find_stage_in_project(project_id: int, stage_order: str):
-    stages = load_project_stages(project_id)
+def get_project_stages(project_id: int, store=None):
+    stages_map = get_project_stages_map(store)
+    return stages_map.setdefault(str(project_id), [])
+
+
+def set_project_stages(project_id: int, stages, store=None):
+    stages_map = get_project_stages_map(store)
+    stages_map[str(project_id)] = stages
+    mark_store_dirty()
+
+
+def find_stage_in_project(project_id: int, stage_order: str, store=None):
+    stages = get_project_stages(project_id, store)
     return next((stage for stage in stages if stage["stage_order"] == stage_order), None)
 
 
-def get_project_team(project_id: int):
-    return load_project_teams(project_id)
+def get_project_team(project_id: int, store=None):
+    teams_map = get_project_teams_map(store)
+    return teams_map.setdefault(
+        str(project_id),
+        {
+            "team_rows": [
+                {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
+                {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
+            ]
+        },
+    )
+
+
+def set_project_team(project_id: int, team_data, store=None):
+    teams_map = get_project_teams_map(store)
+    teams_map[str(project_id)] = team_data
+    mark_store_dirty()
 
 
 def normalize_team_rows(pm_list, design_list, machine_list, control_list, sales_list):
@@ -380,8 +443,8 @@ def compute_stage_status(stage_order, assignee_name, planned_date, actual_date, 
     return "누락"
 
 
-def merge_stages(project_id: int):
-    saved_list = load_project_stages(project_id)
+def merge_stages(project_id: int, store=None):
+    saved_list = get_project_stages(project_id, store)
     saved_map = {stage["stage_order"]: stage for stage in saved_list}
     merged = []
 
@@ -407,7 +470,6 @@ def merge_stages(project_id: int):
             is_not_applicable,
         )
 
-        # 업무 규칙: 6~9단계는 5번 완료 전까지 미착수
         if master["stage_order"] in ["6", "7", "7-1", "8", "9"] and not is_not_applicable:
             stage5 = next((s for s in merged if s["stage_order"] == "5"), None)
             stage5_completed = stage5 and stage5.get("status") == "완료"
@@ -431,20 +493,12 @@ def merge_stages(project_id: int):
     return merged
 
 
-def recompute_project(project_id):
-    store = load_store()
-    projects = store["projects"]
-
-    project = None
-    for p in projects:
-        if p["id"] == project_id and not p.get("is_deleted", False):
-            project = p
-            break
-
+def recompute_project(project_id, store=None):
+    project = find_project(project_id, include_deleted=False, store=store)
     if not project:
-        return
+        return None
 
-    merged = merge_stages(project_id)
+    merged = merge_stages(project_id, store)
 
     project["is_delayed"] = any(s["status"] == "지연" for s in merged)
     project["is_missing"] = any(s["status"] == "누락" for s in merged)
@@ -475,15 +529,22 @@ def recompute_project(project_id):
     else:
         project["status"] = "진행"
 
-    save_store(store)
+    return project
 
 
-def recompute_all_projects():
-    projects = load_projects()
-    for project in projects:
+def recompute_all_projects(store=None):
+    changed = False
+    for project in get_projects(store):
         if project.get("is_deleted", False):
             continue
-        recompute_project(project["id"])
+        before = json.dumps(project, ensure_ascii=False, sort_keys=True)
+        recompute_project(project["id"], store)
+        after = json.dumps(project, ensure_ascii=False, sort_keys=True)
+        if before != after:
+            changed = True
+
+    if changed:
+        mark_store_dirty()
 
 
 def get_progress_color(progress_percent: int, is_delayed: bool):
@@ -528,8 +589,8 @@ def build_stage_mini_view(stages):
     return items
 
 
-def enrich_project(project):
-    stages = merge_stages(project["id"])
+def enrich_project(project, store=None):
+    stages = merge_stages(project["id"], store)
     completed_count = sum(
         1 for stage in stages
         if stage["status"] in ["완료", "해당없음"]
@@ -550,14 +611,14 @@ def enrich_project(project):
     return enriched
 
 
-def get_filtered_projects():
+def get_filtered_projects(store=None):
     keyword = request.args.get("keyword", "").strip().lower()
     status = request.args.get("status", "").strip()
     delay = request.args.get("delay", "").strip()
 
     enriched_projects = [
-        enrich_project(project)
-        for project in load_projects()
+        enrich_project(project, store)
+        for project in get_projects(store)
         if not project.get("is_deleted", False)
     ]
     filtered = []
@@ -625,10 +686,12 @@ def master_logout():
 
 @app.route("/dashboard")
 def dashboard():
-    recompute_all_projects()
+    store = load_store()
+    recompute_all_projects(store)
+
     projects = [
-        enrich_project(project)
-        for project in load_projects()
+        enrich_project(project, store)
+        for project in get_projects(store)
         if not project.get("is_deleted", False)
     ]
 
@@ -637,7 +700,7 @@ def dashboard():
         "in_progress": sum(1 for p in projects if p.get("status") == "진행"),
         "approval_pending": sum(
             1 for p in projects
-            if any(stage["status"] == "승인대기" for stage in merge_stages(p["id"]))
+            if any(stage["status"] == "승인대기" for stage in merge_stages(p["id"], store))
         ),
         "completed": sum(1 for p in projects if p.get("status") == "완료"),
         "missing": sum(1 for p in projects if p.get("is_missing")),
@@ -645,12 +708,10 @@ def dashboard():
     }
 
     delayed_projects = [p for p in projects if p.get("is_delayed")]
-    approval_pending_projects = []
-
-    for p in projects:
-        stages = merge_stages(p["id"])
-        if any(stage["status"] == "승인대기" for stage in stages):
-            approval_pending_projects.append(p)
+    approval_pending_projects = [
+        p for p in projects
+        if any(stage["status"] == "승인대기" for stage in merge_stages(p["id"], store))
+    ]
 
     return render_template(
         "dashboard.html",
@@ -663,8 +724,10 @@ def dashboard():
 
 @app.route("/projects")
 def projects():
-    recompute_all_projects()
-    filtered_projects, keyword, status, delay = get_filtered_projects()
+    store = load_store()
+    recompute_all_projects(store)
+
+    filtered_projects, keyword, status, delay = get_filtered_projects(store)
     status_options = ["진행", "승인대기", "완료", "지연", "누락"]
 
     return render_template(
@@ -689,7 +752,8 @@ def project_create():
     if not require_master():
         return redirect(url_for("projects"))
 
-    projects = load_projects()
+    store = load_store()
+    projects = get_projects(store)
 
     code = request.form.get("code", "").strip()
     name = request.form.get("name", "").strip()
@@ -704,9 +768,9 @@ def project_create():
         return redirect(url_for("project_new"))
 
     if not code:
-        code = generate_project_code()
+        code = generate_project_code(store)
 
-    new_id = get_next_project_id()
+    new_id = get_next_project_id(store)
 
     new_project = {
         "id": new_id,
@@ -726,9 +790,8 @@ def project_create():
     }
 
     projects.append(new_project)
-    save_projects(projects)
 
-    save_project_stages(new_id, [
+    get_project_stages_map(store)[str(new_id)] = [
         {
             "stage_order": master["stage_order"],
             "stage_name": master["stage_name"],
@@ -741,32 +804,35 @@ def project_create():
             "is_not_applicable": False,
         }
         for master in STAGE_MASTER
-    ])
+    ]
 
-    save_project_teams(new_id, {
+    get_project_teams_map(store)[str(new_id)] = {
         "team_rows": [
             {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
             {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
         ]
-    })
+    }
 
-    save_stage_change_history(new_id, [])
+    get_stage_change_history_map(store)[str(new_id)] = []
 
-    recompute_project(new_id)
+    recompute_project(new_id, store)
+    mark_store_dirty()
+    save_store(store)
+
     flash("프로젝트가 등록되었습니다.")
     return redirect(url_for("project_detail", project_id=new_id))
 
 
 @app.route("/projects/<int:project_id>")
 def project_detail(project_id: int):
-    project = find_project(project_id)
+    store = load_store()
+    project = find_project(project_id, store=store)
     if not project:
         abort(404)
 
-    recompute_project(project_id)
-    project = find_project(project_id)
-    enriched_project = enrich_project(project)
-    team_data = get_project_team(project_id)
+    recompute_project(project_id, store)
+    enriched_project = enrich_project(project, store)
+    team_data = get_project_team(project_id, store)
 
     return render_template(
         "project_detail.html",
@@ -781,7 +847,8 @@ def project_edit(project_id: int):
     if not require_master():
         return redirect(url_for("project_detail", project_id=project_id))
 
-    project = find_project(project_id)
+    store = load_store()
+    project = find_project(project_id, store=store)
     if not project:
         abort(404)
 
@@ -793,8 +860,8 @@ def project_edit_submit(project_id: int):
     if not require_master():
         return redirect(url_for("project_detail", project_id=project_id))
 
-    projects = load_projects()
-    project = next((p for p in projects if p["id"] == project_id and not p.get("is_deleted", False)), None)
+    store = load_store()
+    project = find_project(project_id, store=store)
     if not project:
         abort(404)
 
@@ -818,8 +885,9 @@ def project_edit_submit(project_id: int):
     project["due_date"] = due_date or None
     project["pm_name"] = pm_name
 
-    save_projects(projects)
-    recompute_project(project_id)
+    recompute_project(project_id, store)
+    mark_store_dirty()
+    save_store(store)
 
     flash("프로젝트 기본정보가 수정되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
@@ -827,11 +895,12 @@ def project_edit_submit(project_id: int):
 
 @app.route("/projects/<int:project_id>/update", methods=["POST"])
 def update_project(project_id):
-    project = find_project(project_id)
+    store = load_store()
+    project = find_project(project_id, store=store)
     if not project:
         abort(404)
 
-    existing_stage_list = load_project_stages(project_id)
+    existing_stage_list = get_project_stages(project_id, store)
     existing_stage_map = {
         stage["stage_order"]: stage
         for stage in existing_stage_list
@@ -849,7 +918,6 @@ def update_project(project_id):
         note_map[key] = request.form.get(f"note_{key}", "").strip()
         na_map[key] = request.form.get(f"not_applicable_{key}") == "Y"
 
-    # 불변 규칙: 계획일 자동 산정
     planned_map["3"] = add_days(actual_map.get("2"), 7)
     planned_map["4"] = add_days(planned_map.get("3"), 7)
     planned_map["5"] = add_days(planned_map.get("3"), 7)
@@ -881,31 +949,31 @@ def update_project(project_id):
         changed_by_actual = request.form.get(f"changed_by_actual_{key}", "").strip()
         change_reason_actual = request.form.get(f"change_reason_actual_{key}", "").strip()
 
-        if old_planned_date != planned_date:
-            if changed_by_planned and change_reason_planned:
-                add_stage_change_history(
-                    project_id=project_id,
-                    stage_order=key,
-                    field_name="planned_date",
-                    field_label="계획일",
-                    old_value=old_planned_date,
-                    new_value=planned_date,
-                    changed_by=changed_by_planned,
-                    change_reason=change_reason_planned,
-                )
+        if old_planned_date != planned_date and changed_by_planned and change_reason_planned:
+            add_stage_change_history(
+                project_id=project_id,
+                stage_order=key,
+                field_name="planned_date",
+                field_label="계획일",
+                old_value=old_planned_date,
+                new_value=planned_date,
+                changed_by=changed_by_planned,
+                change_reason=change_reason_planned,
+                store=store,
+            )
 
-        if old_actual_date != actual_date:
-            if changed_by_actual and change_reason_actual:
-                add_stage_change_history(
-                    project_id=project_id,
-                    stage_order=key,
-                    field_name="actual_date",
-                    field_label="실적일",
-                    old_value=old_actual_date,
-                    new_value=actual_date,
-                    changed_by=changed_by_actual,
-                    change_reason=change_reason_actual,
-                )
+        if old_actual_date != actual_date and changed_by_actual and change_reason_actual:
+            add_stage_change_history(
+                project_id=project_id,
+                stage_order=key,
+                field_name="actual_date",
+                field_label="실적일",
+                old_value=old_actual_date,
+                new_value=actual_date,
+                changed_by=changed_by_actual,
+                change_reason=change_reason_actual,
+                store=store,
+            )
 
         if old_actual_date != actual_date:
             approval_date = None
@@ -924,7 +992,7 @@ def update_project(project_id):
             }
         )
 
-    save_project_stages(project_id, updated_list)
+    set_project_stages(project_id, updated_list, store)
 
     pm_list = request.form.getlist("team_pm[]")
     design_list = request.form.getlist("team_design[]")
@@ -940,11 +1008,11 @@ def update_project(project_id):
         sales_list,
     )
 
-    save_project_teams(project_id, {
-        "team_rows": team_rows
-    })
+    set_project_team(project_id, {"team_rows": team_rows}, store)
 
-    recompute_project(project_id)
+    recompute_project(project_id, store)
+    save_store(store)
+
     flash("프로젝트 상세가 수정되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
 
@@ -954,14 +1022,15 @@ def project_delete(project_id: int):
     if not require_master():
         return redirect(url_for("project_detail", project_id=project_id))
 
-    projects = load_projects()
-    target = next((p for p in projects if p["id"] == project_id), None)
+    store = load_store()
+    target = find_project(project_id, include_deleted=True, store=store)
 
     if not target:
         abort(404)
 
     target["is_deleted"] = True
-    save_projects(projects)
+    mark_store_dirty()
+    save_store(store)
 
     flash("프로젝트가 삭제되었습니다.")
     return redirect(url_for("projects"))
@@ -972,11 +1041,12 @@ def approve_stage(project_id: int, stage_order: str):
     if not require_master():
         return redirect(url_for("project_detail", project_id=project_id))
 
-    project = find_project(project_id)
+    store = load_store()
+    project = find_project(project_id, store=store)
     if not project:
         abort(404)
 
-    stages = load_project_stages(project_id)
+    stages = get_project_stages(project_id, store)
     target = next((stage for stage in stages if stage["stage_order"] == stage_order), None)
 
     if not target:
@@ -996,6 +1066,7 @@ def approve_stage(project_id: int, stage_order: str):
             "is_not_applicable": False,
         }
         stages.append(target)
+        mark_store_dirty()
 
     if not target.get("actual_date"):
         flash("실적일을 먼저 저장한 뒤 승인하세요.")
@@ -1003,10 +1074,11 @@ def approve_stage(project_id: int, stage_order: str):
 
     if target.get("actual_date") and not target.get("approval_date"):
         target["approval_date"] = datetime.today().strftime("%Y-%m-%d")
-        save_project_stages(project_id, stages)
+        recompute_project(project_id, store)
+        mark_store_dirty()
+        save_store(store)
         flash("승인 처리되었습니다.")
 
-    recompute_project(project_id)
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -1015,11 +1087,12 @@ def cancel_approve_stage(project_id: int, stage_order: str):
     if not require_master():
         return redirect(url_for("project_detail", project_id=project_id))
 
-    project = find_project(project_id)
+    store = load_store()
+    project = find_project(project_id, store=store)
     if not project:
         abort(404)
 
-    stages = load_project_stages(project_id)
+    stages = get_project_stages(project_id, store)
     target = next((stage for stage in stages if stage["stage_order"] == stage_order), None)
 
     if not target:
@@ -1027,20 +1100,22 @@ def cancel_approve_stage(project_id: int, stage_order: str):
 
     if target.get("approval_date"):
         target["approval_date"] = None
-        save_project_stages(project_id, stages)
+        recompute_project(project_id, store)
+        mark_store_dirty()
+        save_store(store)
 
-    recompute_project(project_id)
     flash("승인이 취소되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
 @app.route("/projects/<int:project_id>/history/<stage_order>")
 def project_stage_history(project_id: int, stage_order: str):
-    project = find_project(project_id)
+    store = load_store()
+    project = find_project(project_id, store=store)
     if not project:
         abort(404)
 
-    rows = get_stage_history_rows(project_id, stage_order)
+    rows = get_stage_history_rows(project_id, stage_order, store)
     return jsonify({
         "ok": True,
         "items": rows
