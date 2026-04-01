@@ -147,12 +147,13 @@
         <tbody>
           {% for stage in stages %}
           <tr
-            class="
-              detail-stage-row
-              {% if stage.status == '승인대기' %}detail-row-approval{% endif %}
-              {% if stage.status == '완료' %}detail-row-complete{% endif %}
-              {% if stage.status == '해당없음' %}detail-row-na{% endif %}
-            "
+             class="
+               detail-stage-row
+               {% if stage.status == '승인대기' %}detail-row-approval{% endif %}
+               {% if stage.status == '완료' %}detail-row-complete{% endif %}
+               {% if stage.status == '해당없음' %}detail-row-na{% endif %}
+           "
+           data-saved-na="{% if stage.status == '해당없음' %}Y{% else %}N{% endif %}"
           >
             <td>{{ stage.stage_order }}. {{ stage.stage_name }}</td>
 
@@ -349,56 +350,62 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!checkbox) return;
 
     const targets = row.querySelectorAll('.lock-target');
+    const savedNa = row.dataset.savedNa === 'Y';
+
+    function setReadonly(input) {
+      input.disabled = false;
+      input.readOnly = true;
+      input.classList.add('row-readonly');
+    }
+
+    function setEditable(input) {
+      input.disabled = false;
+      input.readOnly = false;
+      input.classList.remove('row-readonly');
+    }
+
+    function setDisabled(input) {
+      input.disabled = true;
+      input.readOnly = false;
+      input.classList.remove('row-readonly');
+    }
 
     function updateRowLock() {
       const isCompleteRow = row.classList.contains('detail-row-complete');
-      const isSavedNaRow = row.classList.contains('detail-row-na');
       const isNaChecked = checkbox.checked;
 
       targets.forEach(function (input) {
         const isNoteInput = input.classList.contains('note-input');
 
         if (isCompleteRow) {
-          input.disabled = false;
-          input.readOnly = true;
-          input.classList.add('row-readonly');
+          setReadonly(input);
           return;
         }
 
-        if (isSavedNaRow && !isNaChecked) {
-          input.disabled = false;
-          input.readOnly = true;
-          input.classList.add('row-readonly');
+        if (savedNa) {
+          setReadonly(input);
           return;
         }
 
         if (isNaChecked) {
           if (isNoteInput) {
-            input.disabled = false;
-            input.readOnly = false;
-            input.classList.remove('row-readonly');
+            setEditable(input);
           } else {
-            input.disabled = true;
-            input.readOnly = false;
-            input.classList.remove('row-readonly');
+            setDisabled(input);
           }
           return;
         }
 
-        input.disabled = false;
-        input.readOnly = false;
-        input.classList.remove('row-readonly');
+        setEditable(input);
       });
 
-      if (checkbox) {
-        checkbox.disabled = isCompleteRow;
-      }
+      checkbox.disabled = isCompleteRow || savedNa;
     }
 
     checkbox.addEventListener('change', function () {
       updateRowLock();
 
-      if (checkbox.checked) {
+      if (checkbox.checked && !savedNa) {
         window.alert('비고란에 해당없음 사유를 입력하시오.');
 
         const noteInput = row.querySelector('.note-input');
