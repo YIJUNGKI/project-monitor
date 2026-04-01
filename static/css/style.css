@@ -319,8 +319,8 @@ th {
 }
 
 .project-name-cell {
-  min-width: 300px;
-  max-width: 360px;
+  min-width: 340px;
+  max-width: 420px;
 }
 
 .project-name {
@@ -336,7 +336,7 @@ th {
 }
 
 .progress-cell {
-  min-width: 150px;
+  min-width: 130px;
 }
 
 .progress-wrap {
@@ -346,7 +346,7 @@ th {
 }
 
 .progress-track {
-  width: 90px;
+  width: 78px;
   height: 8px;
   background: #e5e7eb;
   border-radius: 999px;
@@ -379,10 +379,17 @@ th {
   min-width: 240px;
 }
 
+.mini-view-cell {
+  min-width: 320px;
+  white-space: nowrap;
+}
+
 .mini-view {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  white-space: nowrap;
+  overflow-x: auto;
 }
 
 .mini-step {
@@ -980,40 +987,33 @@ th {
   z-index: 2;
 }
 
-.dashboard-table th,
-.dashboard-table td,
-.projects-table th,
-.projects-table td {
-  white-space: normal;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-  vertical-align: middle;
-}
-
 /* 대시보드 컬럼 폭 */
 .dashboard-table th:nth-child(1),
 .dashboard-table td:nth-child(1) {
-  width: 60px;
+  width: 84px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .dashboard-table th:nth-child(2),
 .dashboard-table td:nth-child(2) {
-  width: 280px;
+  width: 360px;
 }
 
-.projects-table th:nth-child(3),
-.projects-table td:nth-child(3) {
-  width: 140px;
+.dashboard-table th:nth-child(3),
+.dashboard-table td:nth-child(3) {
+  width: 170px;
 }
 
-.projects-table th:nth-child(4),
-.projects-table td:nth-child(4) {
-  width: 220px;
+.dashboard-table th:nth-child(4),
+.dashboard-table td:nth-child(4) {
+  width: 150px;
 }
 
-.projects-table th:nth-child(5),
-.projects-table td:nth-child(5) {
-  width: 130px;
+.dashboard-table th:nth-child(5),
+.dashboard-table td:nth-child(5) {
+  width: 320px;
 }
 
 .dashboard-table th:nth-child(6),
@@ -1023,7 +1023,7 @@ th {
 
 .dashboard-table th:nth-child(7),
 .dashboard-table td:nth-child(7) {
-  width: 58px;
+  width: 64px;
 }
 
 /* 프로젝트 목록 컬럼 폭 */
