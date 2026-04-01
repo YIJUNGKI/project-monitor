@@ -399,8 +399,16 @@ document.addEventListener('DOMContentLoaded', function () {
         setEditable(input);
       });
 
-      checkbox.disabled = isCompleteRow || savedNa;
+      checkbox.disabled = false;
+      checkbox.dataset.locked = (isCompleteRow || savedNa) ? 'Y' : 'N';
     }
+
+    checkbox.addEventListener('click', function (e) {
+      if (checkbox.dataset.locked === 'Y') {
+        e.preventDefault();
+        return;
+      }
+    }); 
 
     checkbox.addEventListener('change', function () {
       updateRowLock();
