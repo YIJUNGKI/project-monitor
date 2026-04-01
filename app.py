@@ -561,32 +561,27 @@ def master_logout():
 
 @app.route("/dashboard")
 def dashboard():
-    # recompute_all_projects()
     projects = [
         enrich_project(project)
         for project in load_projects()
         if not project.get("is_deleted", False)
     ]
 
+    approval_pending_projects = [
+        p for p in projects
+        if any(stage["status"] == "승인대기" for stage in p["stages"])
+    ]
+
     summary = {
         "total": len(projects),
         "in_progress": sum(1 for p in projects if p["status"] == "진행"),
-        "approval_pending": sum(
-            1 for p in projects
-            if any(stage["status"] == "승인대기" for stage in merge_stages(p["id"]))
-        ),
+        "approval_pending": len(approval_pending_projects),
         "completed": sum(1 for p in projects if p["status"] == "완료"),
         "missing": sum(1 for p in projects if p.get("is_missing")),
         "delayed": sum(1 for p in projects if p.get("is_delayed")),
     }
 
     delayed_projects = [p for p in projects if p.get("is_delayed")]
-    approval_pending_projects = []
-
-    for p in projects:
-        stages = merge_stages(p["id"])
-        if any(stage["status"] == "승인대기" for stage in stages):
-            approval_pending_projects.append(p)
 
     return render_template(
         "dashboard.html",
@@ -595,7 +590,6 @@ def dashboard():
         delayed_projects=delayed_projects,
         approval_pending_projects=approval_pending_projects,
     )
-
 
 @app.route("/projects")
 def projects():
