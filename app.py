@@ -1,6 +1,7 @@
 import os
 import json
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from flask import Flask, render_template, abort, request, redirect, url_for, flash, jsonify, session
 from upstash_redis import Redis
@@ -192,6 +193,8 @@ def parse_date(date_str):
     except ValueError:
         return None
 
+def now_kst():
+    return datetime.now(ZoneInfo("Asia/Seoul"))
 
 def add_days(date_str, days):
     d = parse_date(date_str)
@@ -224,7 +227,7 @@ def add_stage_change_history(
             "new_value": new_value or "",
             "changed_by": changed_by.strip(),
             "change_reason": change_reason.strip(),
-            "changed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "changed_at": now_kst().strftime("%Y-%m-%d %H:%M:%S"),
         }
     )
     save_project_history(project_id, history_rows)
@@ -946,7 +949,7 @@ def approve_stage(project_id: int, stage_order: str):
         return redirect(url_for("project_detail", project_id=project_id))
 
     if target.get("actual_date") and not target.get("approval_date"):
-        target["approval_date"] = datetime.today().strftime("%Y-%m-%d")
+        target["approval_date"] = now_kst().strftime("%Y-%m-%d")
         save_project_stages(project_id, stages)
         flash("승인 처리되었습니다.")
 
