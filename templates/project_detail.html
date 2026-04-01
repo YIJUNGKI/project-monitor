@@ -220,7 +220,7 @@
       name="note_{{ stage.stage_order }}"
       value="{{ stage.note or '' }}"
       class="lock-target"
-      placeholder="{% if stage.stage_order|string == '4' %}오른쪽 상단에 구성원 입력{% elif stage.stage_order|string == '7-1' %}작성 체크시트 기입 ex) 설계업무 / 외주설계{% elif stage.stage_order|string == '8' %}선정업체 기입 ex) 조립:CMT, 두원 / 설치:CMT / 제어:나라 / 프로그램:국동/유승{% endif %}"
+      placeholder="{{ stage.note_help or '' }}"
       style="width: 100%; height: 36px;"
     >
   </td>

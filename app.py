@@ -56,6 +56,20 @@ REQUIRED_FIELDS_BY_STAGE = {
     "9": ["planned_date"],
 }
 
+STAGE_NOTE_HELP = {
+    "1": "작업지시서 발행 후 품질팀 입력",
+    "2": "생관 PM선정 공유 후 품질팀 입력",
+    "3": "회의록 결재 후 실적일 입력",
+    "4": "오른쪽 상단 팀구성원 입력",
+    "5": "보고서 결재 후 실적일 입력",
+    "6": "회의록 PDM 저장 후 실적일 입력",
+    "7": "회의록 결재 후 실적일 입력",
+    "7-1": "작성 체크시트 기입 예) 설계업무 / 외주설계",
+    "8": "선정업체 기입 예) 조립:CMT, 두원 / 설치:CMT / 제어:나라",
+    "9": "보고서 결재 후 실적일 입력",
+}
+
+
 
 # =========================
 # 권한
@@ -485,10 +499,11 @@ def merge_stages(project_id: int, store=None):
                 "actual_date": actual_date,
                 "approval_date": approval_date,
                 "note": note,
+                "note_help": STAGE_NOTE_HELP.get(master["stage_order"], ""),
                 "status": status,
                 "is_not_applicable": is_not_applicable,
             }
-        )
+        )     
 
     return merged
 
