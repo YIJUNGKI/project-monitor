@@ -379,17 +379,10 @@ th {
   min-width: 240px;
 }
 
-.mini-view-cell {
-  min-width: 320px;
-  white-space: nowrap;
-}
-
 .mini-view {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 6px;
-  white-space: nowrap;
-  overflow-x: auto;
 }
 
 .mini-step {
@@ -406,6 +399,46 @@ th {
   border: 1px solid transparent;
   box-sizing: border-box;
 }
+
+.mini-step {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+/* 대시보드 단계요약만 한 줄 압축 */
+.dashboard-table .mini-view-cell {
+  min-width: 260px;
+  white-space: nowrap;
+}
+
+.dashboard-table .mini-view {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  align-items: center;
+}
+
+.dashboard-table .mini-step {
+  min-width: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 11px;
+  flex: 0 0 28px;
+}
+
 
 /* 미니 단계칩 상태 색상 */
 .mini-step-green {
