@@ -356,40 +356,41 @@ document.addEventListener('DOMContentLoaded', function () {
     const targets = row.querySelectorAll('.lock-target');
 
     function updateRowLock() {
-  const isCompleteRow = row.classList.contains('detail-row-complete');
-  const isNaRow = checkbox.checked;
+      const isCompleteRow = row.classList.contains('detail-row-complete');
+      const isNaRow = checkbox.checked;
 
-  targets.forEach(function (input) {
-    if (isCompleteRow) {
-      input.disabled = false;
-      input.readOnly = true;
-      input.classList.add('row-readonly');
-    } else if (isNaRow) {
-      input.disabled = true;
-      input.readOnly = false;
-      input.classList.remove('row-readonly');
-    } else {
-      input.disabled = false;
-      input.readOnly = false;
-      input.classList.remove('row-readonly');
+      targets.forEach(function (input) {
+        if (isCompleteRow) {
+          input.disabled = false;
+          input.readOnly = true;
+          input.classList.add('row-readonly');
+        } else if (isNaRow) {
+          input.disabled = true;
+          input.readOnly = false;
+          input.classList.remove('row-readonly');
+        } else {
+          input.disabled = false;
+          input.readOnly = false;
+          input.classList.remove('row-readonly');
+        }
+      });
+
+      if (checkbox) {
+        checkbox.disabled = isCompleteRow;
+      }
+
+      row.classList.toggle('detail-row-na', isNaRow);
     }
-  });
 
-  if (checkbox) {
-    checkbox.disabled = isCompleteRow;
-  }
-
-  row.classList.toggle('detail-row-na', isNaRow);
-}
-
-  checkbox.addEventListener('change', function () {
+    checkbox.addEventListener('change', function () {
       if (checkbox.checked) {
-        alert('비고란에 해당없음 사유를 입력하시오.');
+        window.alert('비고란에 해당없음 사유를 입력하시오.');
       }
       updateRowLock();
     });
 
     updateRowLock();
+  });
 
   function openChangeModal(input) {
     const row = input.closest('tr');
