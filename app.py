@@ -1,11 +1,25 @@
 import os
+import json
+from urllib import request as urlrequest
+from urllib.parse import quote
+
 from flask import Flask, render_template, abort, request, redirect, url_for, flash, jsonify, session
 from datetime import datetime, timedelta
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 MASTER_PASSWORD = os.environ.get("MASTER_PASSWORD", "260407")
 
+UPSTASH_REDIS_REST_URL = os.environ.get("UPSTASH_REDIS_REST_URL", "").strip()
+UPSTASH_REDIS_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "").strip()
+
+STORE_KEY = "project_monitor:data:v1"
+
+
+# =========================
+# 기본 권한
+# =========================
 def is_master():
     return session.get("is_master", False)
 
@@ -16,12 +30,17 @@ def require_master():
         return False
     return True
 
+
 @app.context_processor
 def inject_master_flag():
     return {
         "is_master": session.get("is_master", False)
     }
 
+
+# =========================
+# 마스터 단계 정의
+# =========================
 STAGE_MASTER = [
     {"stage_order": "1", "stage_name": "작업지시서"},
     {"stage_order": "2", "stage_name": "PM지정"},
@@ -50,232 +69,150 @@ REQUIRED_FIELDS_BY_STAGE = {
     "9": ["planned_date"],
 }
 
-PROJECTS = [
-    {
-        "id": 1,
-        "code": "25037",
-        "name": "화성)세타 3C라인 세타3 T-GDI 기종추가 갠트리 및 자동화 개조",
-        "customer": "KMC",
-        "location": "화성",
-        "order_date": "2025-04-23",
-        "due_date": "2026-03-08",
-        "status": "진행",
-        "pm_name": "김지명",
-        "current_stage": "CHECK SHEET",
-        "current_stage_order": "7-1",
-        "is_delayed": False,
-        "is_deleted": False,
-    },
-    {
-        "id": 2,
-        "code": "25056",
-        "name": "코넥)TESLA 3DUR ITEM 이관건",
-        "customer": "코넥",
-        "location": "울산",
-        "order_date": "2025-05-10",
-        "due_date": "2026-02-20",
-        "pm_name": "김지명",
-        "current_stage": "업체선정",
-        "current_stage_order": "8",
-        "is_delayed": False,
-        "is_deleted": False,
-    },
-]
 
-PROJECT_STAGES = {
-    1: [
-        {
-            "stage_order": "1",
-            "stage_name": "작업지시서",
-            "assignee_name": "영업팀",
-            "planned_date": "2025-08-07",
-            "actual_date": "2025-08-07",
-            "approval_date": "2025-08-07",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "2",
-            "stage_name": "PM지정",
-            "assignee_name": "생관팀",
-            "planned_date": "2025-08-14",
-            "actual_date": "2025-08-07",
-            "approval_date": "2025-08-07",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "3",
-            "stage_name": "설명회",
-            "assignee_name": "영업팀",
-            "planned_date": "2025-08-17",
-            "actual_date": "2025-08-08",
-            "approval_date": "2025-08-08",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "4",
-            "stage_name": "팀구성",
-            "assignee_name": "생관팀",
-            "planned_date": "2025-08-19",
-            "actual_date": "2025-08-07",
-            "approval_date": "2025-08-07",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "5",
-            "stage_name": "착수보고서작성",
-            "assignee_name": "PM",
-            "planned_date": "2025-08-21",
-            "actual_date": "2025-08-18",
-            "approval_date": "2025-08-18",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "6",
-            "stage_name": "승인협의",
-            "assignee_name": "PM",
-            "planned_date": None,
-            "actual_date": "2025-08-19",
-            "approval_date": "2025-08-19",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "7",
-            "stage_name": "점검회의",
-            "assignee_name": "PM",
-            "planned_date": None,
-            "actual_date": "2025-09-01",
-            "approval_date": "2025-09-01",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "7-1",
-            "stage_name": "CHECK SHEET",
-            "assignee_name": "설계팀",
-            "planned_date": None,
-            "actual_date": "2025-08-25",
-            "approval_date": "2025-08-25",
-            "note": "설계업무 / 외주설계",
-            "status": "진행",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "8",
-            "stage_name": "업체선정",
-            "assignee_name": "구매팀",
-            "planned_date": None,
-            "actual_date": "2025-09-29",
-            "approval_date": "2025-09-29",
-            "note": "조립:CMT, 두원 / 설치:CMT / 제어:나라 / 프로그램:국동/유승",
-            "is_not_applicable": False,
-        },
-    ],
-    2: [
-        {
-            "stage_order": "1",
-            "stage_name": "작업지시서",
-            "assignee_name": "영업팀",
-            "planned_date": "2025-12-03",
-            "actual_date": "2025-12-03",
-            "approval_date": "2025-12-03",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "2",
-            "stage_name": "PM지정",
-            "assignee_name": "생관팀",
-            "planned_date": "2025-12-10",
-            "actual_date": "2025-12-11",
-            "approval_date": "2025-12-11",
-            "note": "-",
-            "status": "완료",
-            "is_not_applicable": False,
-        },
-        {
-            "stage_order": "8",
-            "stage_name": "업체선정",
-            "assignee_name": "구매팀",
-            "planned_date": "2026-01-28",
-            "actual_date": None,
-            "approval_date": None,
-            "note": "협력사 검토 중",
-            "is_not_applicable": False,
-        },
-    ],
-}
+# =========================
+# Redis 저장소
+# =========================
+def using_redis():
+    return bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
 
-PROJECT_TEAMS = {
-    1: {
+
+def redis_call(command, *args):
+    if not using_redis():
+        raise RuntimeError("UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN 환경변수가 없습니다.")
+
+    base = UPSTASH_REDIS_REST_URL.rstrip("/")
+    path = "/".join([quote(str(command), safe="")] + [quote(str(a), safe="") for a in args])
+    url = f"{base}/{path}"
+
+    req = urlrequest.Request(url)
+    req.add_header("Authorization", f"Bearer {UPSTASH_REDIS_REST_TOKEN}")
+
+    with urlrequest.urlopen(req, timeout=10) as resp:
+        raw = resp.read().decode("utf-8")
+        data = json.loads(raw)
+        return data.get("result")
+
+
+def empty_store():
+    return {
+        "projects": [],
+        "project_stages": {},
+        "project_teams": {},
+        "stage_change_history": {},
+    }
+
+
+def load_store():
+    if not using_redis():
+        return empty_store()
+
+    raw = redis_call("GET", STORE_KEY)
+    if not raw:
+        store = empty_store()
+        save_store(store)
+        return store
+
+    try:
+        store = json.loads(raw)
+    except Exception:
+        store = empty_store()
+        save_store(store)
+        return store
+
+    # 안전 보정
+    store.setdefault("projects", [])
+    store.setdefault("project_stages", {})
+    store.setdefault("project_teams", {})
+    store.setdefault("stage_change_history", {})
+    return store
+
+
+def save_store(store):
+    payload = json.dumps(store, ensure_ascii=False)
+    redis_call("SET", STORE_KEY, payload)
+
+
+def load_projects():
+    return load_store()["projects"]
+
+
+def save_projects(projects):
+    store = load_store()
+    store["projects"] = projects
+    save_store(store)
+
+
+def load_project_stages(project_id):
+    store = load_store()
+    return store["project_stages"].get(str(project_id), [])
+
+
+def save_project_stages(project_id, stages):
+    store = load_store()
+    store["project_stages"][str(project_id)] = stages
+    save_store(store)
+
+
+def load_project_teams(project_id):
+    store = load_store()
+    return store["project_teams"].get(str(project_id), {
         "team_rows": [
             {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
             {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
-        ],
-    },
-    2: {
-        "team_rows": [
-            {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
-            {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
-        ],
-    },
-}
+        ]
+    })
 
-STAGE_CHANGE_HISTORY = {
-    1: [
-        # 예시
-        # {
-        #     "stage_order": "8",
-        #     "field_name": "planned_date",
-        #     "field_label": "계획일",
-        #     "old_value": "2026-01-20",
-        #     "new_value": "2026-01-28",
-        #     "changed_by": "이정기",
-        #     "change_reason": "업체 검토 일정 변경",
-        #     "changed_at": "2026-03-30 11:20:00",
-        # }
-    ],
-    2: [],
-}
 
+def save_project_teams(project_id, team_data):
+    store = load_store()
+    store["project_teams"][str(project_id)] = team_data
+    save_store(store)
+
+
+def load_stage_change_history(project_id):
+    store = load_store()
+    return store["stage_change_history"].get(str(project_id), [])
+
+
+def save_stage_change_history(project_id, rows):
+    store = load_store()
+    store["stage_change_history"][str(project_id)] = rows
+    save_store(store)
+
+
+# =========================
+# 공통 유틸
+# =========================
 def find_project(project_id: int, include_deleted: bool = False):
-    for project in PROJECTS:
+    projects = load_projects()
+    for project in projects:
         if project["id"] == project_id:
             if not include_deleted and project.get("is_deleted", False):
                 return None
             return project
     return None
 
+
 def get_next_project_id():
-    if not PROJECTS:
+    projects = load_projects()
+    if not projects:
         return 1
-    return max(project["id"] for project in PROJECTS) + 1
+    return max(project["id"] for project in projects) + 1
 
 
 def generate_project_code():
     year_prefix = datetime.today().strftime("%y")
     same_year_codes = []
 
-    for project in PROJECTS:
+    for project in load_projects():
         code = str(project.get("code", "")).strip()
         if code.startswith(year_prefix) and code[2:].isdigit():
             same_year_codes.append(int(code[2:]))
 
     next_number = (max(same_year_codes) + 1) if same_year_codes else 1
     return f"{year_prefix}{next_number:03d}"
+
 
 def get_fixed_assignee(stage_order: str):
     if stage_order == "1":
@@ -309,14 +246,16 @@ def parse_date(date_str):
     except ValueError:
         return None
 
+
 def add_days(date_str, days):
     d = parse_date(date_str)
     if not d:
         return None
     return (d + timedelta(days=days)).strftime("%Y-%m-%d")
 
+
 def get_project_history(project_id: int):
-    return STAGE_CHANGE_HISTORY.setdefault(project_id, [])
+    return load_stage_change_history(project_id)
 
 
 def add_stage_change_history(
@@ -329,8 +268,8 @@ def add_stage_change_history(
     changed_by: str,
     change_reason: str,
 ):
-    history_rows = get_project_history(project_id)
-    history_rows.append(
+    rows = load_stage_change_history(project_id)
+    rows.append(
         {
             "stage_order": stage_order,
             "field_name": field_name,
@@ -342,6 +281,7 @@ def add_stage_change_history(
             "changed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
     )
+    save_stage_change_history(project_id, rows)
 
 
 def get_stage_history_rows(project_id: int, stage_order: str):
@@ -354,20 +294,14 @@ def get_stage_history_rows(project_id: int, stage_order: str):
     rows.sort(key=lambda x: x["changed_at"], reverse=True)
     return rows
 
+
 def find_stage_in_project(project_id: int, stage_order: str):
-    stages = PROJECT_STAGES.setdefault(project_id, [])
+    stages = load_project_stages(project_id)
     return next((stage for stage in stages if stage["stage_order"] == stage_order), None)
 
+
 def get_project_team(project_id: int):
-    return PROJECT_TEAMS.setdefault(
-        project_id,
-        {
-            "team_rows": [
-                {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
-                {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
-            ],
-        },
-    )
+    return load_project_teams(project_id)
 
 
 def normalize_team_rows(pm_list, design_list, machine_list, control_list, sales_list):
@@ -422,14 +356,12 @@ def compute_stage_status(stage_order, assignee_name, planned_date, actual_date, 
     approval = parse_date(approval_date)
     today = datetime.today().date()
 
-    # 1. 실적이 있으면 누락보다 승인/완료를 우선 본다
     if actual and approval:
         return "완료"
 
     if actual and not approval:
         return "승인대기"
 
-    # 2. 실적이 없을 때만 누락 여부를 본다
     if has_missing_required_fields(
         stage_order,
         assignee_name,
@@ -440,7 +372,6 @@ def compute_stage_status(stage_order, assignee_name, planned_date, actual_date, 
     ):
         return "누락"
 
-    # 3. 계획일만 있고 아직 실적이 없으면 진행/지연
     if planned and not actual:
         if planned < today:
             return "지연"
@@ -450,7 +381,8 @@ def compute_stage_status(stage_order, assignee_name, planned_date, actual_date, 
 
 
 def merge_stages(project_id: int):
-    saved_map = {stage["stage_order"]: stage for stage in PROJECT_STAGES.get(project_id, [])}
+    saved_list = load_project_stages(project_id)
+    saved_map = {stage["stage_order"]: stage for stage in saved_list}
     merged = []
 
     for master in STAGE_MASTER:
@@ -475,12 +407,10 @@ def merge_stages(project_id: int):
             is_not_applicable,
         )
 
-        # ===== 업무 규칙 =====
-        # 6~9단계는 5번(착수보고서작성) 완료 전까지는 미착수로 본다.
+        # 업무 규칙: 6~9단계는 5번 완료 전까지 미착수
         if master["stage_order"] in ["6", "7", "7-1", "8", "9"] and not is_not_applicable:
             stage5 = next((s for s in merged if s["stage_order"] == "5"), None)
             stage5_completed = stage5 and stage5.get("status") == "완료"
-
             if not stage5_completed:
                 status = "미착수"
 
@@ -502,7 +432,15 @@ def merge_stages(project_id: int):
 
 
 def recompute_project(project_id):
-    project = find_project(project_id)
+    store = load_store()
+    projects = store["projects"]
+
+    project = None
+    for p in projects:
+        if p["id"] == project_id and not p.get("is_deleted", False):
+            project = p
+            break
+
     if not project:
         return
 
@@ -537,8 +475,12 @@ def recompute_project(project_id):
     else:
         project["status"] = "진행"
 
+    save_store(store)
+
+
 def recompute_all_projects():
-    for project in PROJECTS:
+    projects = load_projects()
+    for project in projects:
         if project.get("is_deleted", False):
             continue
         recompute_project(project["id"])
@@ -589,8 +531,8 @@ def build_stage_mini_view(stages):
 def enrich_project(project):
     stages = merge_stages(project["id"])
     completed_count = sum(
-    1 for stage in stages
-    if stage["status"] in ["완료", "해당없음"]
+        1 for stage in stages
+        if stage["status"] in ["완료", "해당없음"]
     )
     progress_text = f"{completed_count}/{ACTUAL_STAGE_COUNT}"
     progress_percent = int((completed_count / ACTUAL_STAGE_COUNT) * 100)
@@ -600,7 +542,7 @@ def enrich_project(project):
     enriched["completed_count"] = completed_count
     enriched["progress_text"] = progress_text
     enriched["progress_percent"] = progress_percent
-    enriched["progress_color"] = get_progress_color(progress_percent, project["is_delayed"])
+    enriched["progress_color"] = get_progress_color(progress_percent, project.get("is_delayed", False))
     enriched["current_stage_display"] = current_stage_display
     enriched["is_missing"] = project.get("is_missing", False)
     enriched["stage_mini_view"] = build_stage_mini_view(stages)
@@ -615,7 +557,7 @@ def get_filtered_projects():
 
     enriched_projects = [
         enrich_project(project)
-        for project in PROJECTS
+        for project in load_projects()
         if not project.get("is_deleted", False)
     ]
     filtered = []
@@ -623,13 +565,13 @@ def get_filtered_projects():
     for project in enriched_projects:
         searchable = " ".join(
             [
-                project["code"],
-                project["name"],
-                project["customer"],
-                project["location"],
-                project["pm_name"],
-                project["current_stage"],
-                project["current_stage_order"],
+                str(project.get("code", "")),
+                str(project.get("name", "")),
+                str(project.get("customer", "")),
+                str(project.get("location", "")),
+                str(project.get("pm_name", "")),
+                str(project.get("current_stage", "")),
+                str(project.get("current_stage_order", "")),
             ]
         ).lower()
 
@@ -640,12 +582,12 @@ def get_filtered_projects():
             continue
         elif status == "지연" and not project.get("is_delayed", False):
             continue
-        elif status and status not in ["누락", "지연"] and project["status"] != status:
+        elif status and status not in ["누락", "지연"] and project.get("status") != status:
             continue
 
-        if delay == "Y" and not project["is_delayed"]:
+        if delay == "Y" and not project.get("is_delayed", False):
             continue
-        if delay == "N" and project["is_delayed"]:
+        if delay == "N" and project.get("is_delayed", False):
             continue
 
         filtered.append(project)
@@ -653,9 +595,13 @@ def get_filtered_projects():
     return filtered, keyword, status, delay
 
 
+# =========================
+# 라우트
+# =========================
 @app.route("/")
 def home():
     return redirect(url_for("dashboard"))
+
 
 @app.route("/master/login", methods=["POST"])
 def master_login():
@@ -676,28 +622,29 @@ def master_logout():
     flash("마스터 모드가 해제되었습니다.")
     return redirect(request.referrer or url_for("dashboard"))
 
+
 @app.route("/dashboard")
 def dashboard():
     recompute_all_projects()
     projects = [
         enrich_project(project)
-        for project in PROJECTS
+        for project in load_projects()
         if not project.get("is_deleted", False)
     ]
 
     summary = {
         "total": len(projects),
-        "in_progress": sum(1 for p in projects if p["status"] == "진행"),
+        "in_progress": sum(1 for p in projects if p.get("status") == "진행"),
         "approval_pending": sum(
             1 for p in projects
             if any(stage["status"] == "승인대기" for stage in merge_stages(p["id"]))
         ),
-        "completed": sum(1 for p in projects if p["status"] == "완료"),
+        "completed": sum(1 for p in projects if p.get("status") == "완료"),
         "missing": sum(1 for p in projects if p.get("is_missing")),
-        "delayed": sum(1 for p in projects if p["is_delayed"]),
+        "delayed": sum(1 for p in projects if p.get("is_delayed")),
     }
 
-    delayed_projects = [p for p in projects if p["is_delayed"]]
+    delayed_projects = [p for p in projects if p.get("is_delayed")]
     approval_pending_projects = []
 
     for p in projects:
@@ -729,6 +676,7 @@ def projects():
         status_options=status_options,
     )
 
+
 @app.route("/projects/new")
 def project_new():
     if not require_master():
@@ -740,6 +688,8 @@ def project_new():
 def project_create():
     if not require_master():
         return redirect(url_for("projects"))
+
+    projects = load_projects()
 
     code = request.form.get("code", "").strip()
     name = request.form.get("name", "").strip()
@@ -771,12 +721,14 @@ def project_create():
         "current_stage": STAGE_MASTER[0]["stage_name"],
         "current_stage_order": STAGE_MASTER[0]["stage_order"],
         "is_delayed": False,
+        "is_missing": True,
         "is_deleted": False,
     }
 
-    PROJECTS.append(new_project)
+    projects.append(new_project)
+    save_projects(projects)
 
-    PROJECT_STAGES[new_id] = [
+    save_project_stages(new_id, [
         {
             "stage_order": master["stage_order"],
             "stage_name": master["stage_name"],
@@ -789,16 +741,16 @@ def project_create():
             "is_not_applicable": False,
         }
         for master in STAGE_MASTER
-    ]
+    ])
 
-    PROJECT_TEAMS[new_id] = {
+    save_project_teams(new_id, {
         "team_rows": [
             {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
             {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
         ]
-    }
+    })
 
-    STAGE_CHANGE_HISTORY[new_id] = []
+    save_stage_change_history(new_id, [])
 
     recompute_project(new_id)
     flash("프로젝트가 등록되었습니다.")
@@ -812,7 +764,7 @@ def project_detail(project_id: int):
         abort(404)
 
     recompute_project(project_id)
-
+    project = find_project(project_id)
     enriched_project = enrich_project(project)
     team_data = get_project_team(project_id)
 
@@ -822,6 +774,7 @@ def project_detail(project_id: int):
         stages=enriched_project["stages"],
         team_rows=team_data.get("team_rows", []),
     )
+
 
 @app.route("/projects/<int:project_id>/edit")
 def project_edit(project_id: int):
@@ -840,7 +793,8 @@ def project_edit_submit(project_id: int):
     if not require_master():
         return redirect(url_for("project_detail", project_id=project_id))
 
-    project = find_project(project_id)
+    projects = load_projects()
+    project = next((p for p in projects if p["id"] == project_id and not p.get("is_deleted", False)), None)
     if not project:
         abort(404)
 
@@ -864,9 +818,12 @@ def project_edit_submit(project_id: int):
     project["due_date"] = due_date or None
     project["pm_name"] = pm_name
 
+    save_projects(projects)
     recompute_project(project_id)
+
     flash("프로젝트 기본정보가 수정되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
+
 
 @app.route("/projects/<int:project_id>/update", methods=["POST"])
 def update_project(project_id):
@@ -874,9 +831,10 @@ def update_project(project_id):
     if not project:
         abort(404)
 
+    existing_stage_list = load_project_stages(project_id)
     existing_stage_map = {
         stage["stage_order"]: stage
-        for stage in PROJECT_STAGES.get(project_id, [])
+        for stage in existing_stage_list
     }
 
     planned_map = {}
@@ -891,7 +849,7 @@ def update_project(project_id):
         note_map[key] = request.form.get(f"note_{key}", "").strip()
         na_map[key] = request.form.get(f"not_applicable_{key}") == "Y"
 
-    # ===== 불변 규칙: 계획일 자동 산정 =====
+    # 불변 규칙: 계획일 자동 산정
     planned_map["3"] = add_days(actual_map.get("2"), 7)
     planned_map["4"] = add_days(planned_map.get("3"), 7)
     planned_map["5"] = add_days(planned_map.get("3"), 7)
@@ -902,7 +860,7 @@ def update_project(project_id):
         key = master["stage_order"]
         assignee_name = get_fixed_assignee(key)
         existing_stage = existing_stage_map.get(key, {})
-        
+
         planned_date = planned_map.get(key)
         actual_date = actual_map.get(key)
         note = note_map.get(key, "")
@@ -966,7 +924,7 @@ def update_project(project_id):
             }
         )
 
-    PROJECT_STAGES[project_id] = updated_list
+    save_project_stages(project_id, updated_list)
 
     pm_list = request.form.getlist("team_pm[]")
     design_list = request.form.getlist("team_design[]")
@@ -982,26 +940,32 @@ def update_project(project_id):
         sales_list,
     )
 
-    PROJECT_TEAMS[project_id] = {
+    save_project_teams(project_id, {
         "team_rows": team_rows
-    }
+    })
 
     recompute_project(project_id)
     flash("프로젝트 상세가 수정되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
+
 
 @app.route("/projects/<int:project_id>/delete", methods=["POST"])
 def project_delete(project_id: int):
     if not require_master():
         return redirect(url_for("project_detail", project_id=project_id))
 
-    project = find_project(project_id)
-    if not project:
+    projects = load_projects()
+    target = next((p for p in projects if p["id"] == project_id), None)
+
+    if not target:
         abort(404)
 
-    project["is_deleted"] = True
+    target["is_deleted"] = True
+    save_projects(projects)
+
     flash("프로젝트가 삭제되었습니다.")
     return redirect(url_for("projects"))
+
 
 @app.route("/projects/<int:project_id>/approve/<stage_order>", methods=["POST"])
 def approve_stage(project_id: int, stage_order: str):
@@ -1012,7 +976,7 @@ def approve_stage(project_id: int, stage_order: str):
     if not project:
         abort(404)
 
-    stages = PROJECT_STAGES.setdefault(project_id, [])
+    stages = load_project_stages(project_id)
     target = next((stage for stage in stages if stage["stage_order"] == stage_order), None)
 
     if not target:
@@ -1039,10 +1003,12 @@ def approve_stage(project_id: int, stage_order: str):
 
     if target.get("actual_date") and not target.get("approval_date"):
         target["approval_date"] = datetime.today().strftime("%Y-%m-%d")
+        save_project_stages(project_id, stages)
         flash("승인 처리되었습니다.")
 
     recompute_project(project_id)
     return redirect(url_for("project_detail", project_id=project_id))
+
 
 @app.route("/projects/<int:project_id>/approve-cancel/<stage_order>", methods=["POST"])
 def cancel_approve_stage(project_id: int, stage_order: str):
@@ -1053,7 +1019,7 @@ def cancel_approve_stage(project_id: int, stage_order: str):
     if not project:
         abort(404)
 
-    stages = PROJECT_STAGES.setdefault(project_id, [])
+    stages = load_project_stages(project_id)
     target = next((stage for stage in stages if stage["stage_order"] == stage_order), None)
 
     if not target:
@@ -1061,10 +1027,12 @@ def cancel_approve_stage(project_id: int, stage_order: str):
 
     if target.get("approval_date"):
         target["approval_date"] = None
+        save_project_stages(project_id, stages)
 
     recompute_project(project_id)
     flash("승인이 취소되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
+
 
 @app.route("/projects/<int:project_id>/history/<stage_order>")
 def project_stage_history(project_id: int, stage_order: str):
@@ -1078,6 +1046,6 @@ def project_stage_history(project_id: int, stage_order: str):
         "items": rows
     })
 
+
 if __name__ == "__main__":
-    recompute_all_projects()
     app.run(debug=True)
