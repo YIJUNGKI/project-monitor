@@ -561,7 +561,7 @@ def master_logout():
 
 @app.route("/dashboard")
 def dashboard():
-    recompute_all_projects()
+    # recompute_all_projects()
     projects = [
         enrich_project(project)
         for project in load_projects()
@@ -599,7 +599,7 @@ def dashboard():
 
 @app.route("/projects")
 def projects():
-    recompute_all_projects()
+    # recompute_all_projects()
     filtered_projects, keyword, status, delay = get_filtered_projects()
     status_options = ["진행", "승인대기", "완료", "지연", "누락"]
 
