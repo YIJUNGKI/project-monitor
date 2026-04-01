@@ -382,9 +382,20 @@ document.addEventListener('DOMContentLoaded', function () {
   row.classList.toggle('detail-row-na', isNaRow);
 }
 
-    checkbox.addEventListener('change', updateRowLock);
+            checkbox.addEventListener('change', function () {
+      updateRowLock();
+
+      if (checkbox.checked) {
+        const noteInput = row.querySelector('input[name^="note_"]');
+        alert('비고란에 해당없음 사유를 입력하시오.');
+
+        if (noteInput) {
+          noteInput.focus();
+        }
+      }
+    });
+
     updateRowLock();
-  });
 
   function openChangeModal(input) {
     const row = input.closest('tr');
