@@ -1873,3 +1873,28 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   border-color: #e5e7eb;
   cursor: default;
 }
+
+.note-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.note-input {
+  color: #111827;
+}
+
+.note-help {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #9ca3af;
+  padding-left: 2px;
+  word-break: keep-all;
+}
+
+.row-readonly.note-input,
+.note-input[readonly],
+.note-input:disabled {
+  color: #111827;
+  background: #f8fafc;
+}

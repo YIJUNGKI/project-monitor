@@ -222,15 +222,19 @@
             </td>
 
             <td>
+            <div class="note-cell">
               <input
-                type="text"
-                name="note_{{ stage.stage_order }}"
-                value="{{ stage.note or '' }}"
-                class="lock-target note-input"
-                placeholder="{{ stage.note_help or '' }}"
-                style="width: 100%; height: 36px;"
-              >
-            </td>
+                  type="text"
+                  name="note_{{ stage.stage_order }}"
+                  value="{{ stage.note or '' }}"
+                  class="lock-target note-input"
+                  style="width: 100%; height: 36px;"
+            >
+            {% if stage.note_help and not stage.note %}
+              <div class="note-help">{{ stage.note_help }}</div>
+            {% endif %}
+         </div>
+      </td>
 
             <td>
               <label style="display:inline-flex; align-items:center; gap:6px;">
