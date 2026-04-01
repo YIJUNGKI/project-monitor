@@ -784,15 +784,22 @@ def update_project(project_id):
     na_map = {}
 
     for master in STAGE_MASTER:
-        key = master["stage_order"]
-        planned_map[key] = request.form.get(f"planned_{key}", "").strip() or None
-        actual_map[key] = request.form.get(f"actual_{key}", "").strip() or None
-        note_map[key] = request.form.get(f"note_{key}", "").strip()
-        na_map[key] = request.form.get(f"not_applicable_{key}") == "Y"
+         key = master["stage_order"]
+         planned_map[key] = request.form.get(f"planned_{key}", "").strip() or None
+         actual_map[key] = request.form.get(f"actual_{key}", "").strip() or None
+         note_map[key] = request.form.get(f"note_{key}", "").strip()
+         na_map[key] = request.form.get(f"not_applicable_{key}") == "Y"
 
-    planned_map["3"] = add_days(actual_map.get("2"), 7)
-    planned_map["4"] = add_days(planned_map.get("3"), 7)
-    planned_map["5"] = add_days(planned_map.get("3"), 7)
+    auto_plan_3 = add_days(actual_map.get("2"), 7)
+
+    if not planned_map.get("3"):
+         planned_map["3"] = auto_plan_3
+
+    if not planned_map.get("4"):
+         planned_map["4"] = add_days(planned_map.get("3"), 7)
+
+    if not planned_map.get("5"):
+        planned_map["5"] = add_days(planned_map.get("3"), 7)
 
     updated_list = []
 
