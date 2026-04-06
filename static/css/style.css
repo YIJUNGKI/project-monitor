@@ -1008,7 +1008,7 @@ th {
 .dashboard-table,
 .projects-table {
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
   border-collapse: collapse;
 }
 
@@ -1112,7 +1112,9 @@ th {
 
 .projects-table th:nth-child(11),
 .projects-table td:nth-child(11) {
-  width: 56px;
+  width: 80px;
+  min-width: 80px;
+  white-space: nowrap;
 }
 
 /* ===== 대시보드 상태설명 정리 ===== */
