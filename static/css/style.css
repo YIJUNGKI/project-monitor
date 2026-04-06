@@ -1898,3 +1898,8 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   color: #111827;
   background: #f8fafc;
 }
+
+.project-name-cell a:hover .project-name {
+  text-decoration: underline;
+  color: #1d4ed8;
+}
