@@ -491,6 +491,12 @@ def enrich_project(project):
     enriched["stages"] = stages
     return enriched
 
+def safe_code_sort(project):
+    try:
+        return int(str(project.get("code", "")).strip())
+    except (TypeError, ValueError):
+        return 999999
+
 
 def get_filtered_projects():
     keyword = request.args.get("keyword", "").strip().lower()
@@ -570,6 +576,8 @@ def dashboard():
         if not project.get("is_deleted", False)
     ]
 
+    projects = sorted(projects, key=safe_code_sort)
+
     approval_pending_projects = [
         p for p in projects
         if any(stage["status"] == "승인대기" for stage in p["stages"])
@@ -598,6 +606,7 @@ def dashboard():
 def projects():
     # recompute_all_projects()
     filtered_projects, keyword, status, delay = get_filtered_projects()
+    filtered_projects = sorted(filtered_projects, key=safe_code_sort)
     status_options = ["진행", "승인대기", "완료", "지연", "누락"]
 
     return render_template(
