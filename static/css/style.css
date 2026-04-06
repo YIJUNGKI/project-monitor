@@ -1899,7 +1899,13 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   background: #f8fafc;
 }
 
-.project-name-cell a:hover .project-name {
+.project-name-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.project-name-link:hover .project-name {
   text-decoration: underline;
   color: #1d4ed8;
 }
