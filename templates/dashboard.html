@@ -97,7 +97,11 @@
           ">
             <td>{{ project.code }}</td>
             <td class="project-name-cell">
-              <div class="project-name two-line-ellipsis" title="{{ project.name }}">{{ project.name }}</div>
+               <a href="/projects/{{ project.id }}" class="project-name-link">
+                  <div class="project-name two-line-ellipsis" title="{{ project.name }}">
+                   {{ project.name }}
+                 </div>
+               </a>
             </td>
             <td>{{ project.current_stage_display }}</td>
             <td class="progress-cell">
