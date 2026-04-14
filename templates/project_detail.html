@@ -214,19 +214,27 @@
 
             <td>
               <div class="note-cell">
-              <input
-                type="text"
-                name="note_{{ stage.stage_order }}"
-                value="{{ stage.note or '' }}"
-                class="lock-target note-input"
-                autocomplete="off"
-              >
-              <div class="note-full-popup">{{ stage.note or '' }}</div>
+                <input
+                  type="text"
+                  name="note_preview_{{ stage.stage_order }}"
+                  value="{{ stage.note or '' }}"
+                  class="note-inline-input"
+                  autocomplete="off"
+                  readonly
+                >
 
-              {% if stage.note_help and not stage.note %}
-              <div class="note-help">{{ stage.note_help }}</div>
-              {% endif %}
-              </div>
+                <textarea
+                  name="note_{{ stage.stage_order }}"
+                  class="lock-target note-input note-edit-textarea"
+                  rows="3"
+                >{{ stage.note or '' }}</textarea>
+
+                <div class="note-full-popup">{{ stage.note or '' }}</div>
+
+                {% if stage.note_help and not stage.note %}
+                <div class="note-help">{{ stage.note_help }}</div>
+                {% endif %}
+                </div>
             </td>
 
             <td>

@@ -1876,31 +1876,6 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   cursor: default;
 }
 
-.note-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.note-input {
-  color: #111827;
-}
-
-.note-help {
-  font-size: 11px;
-  line-height: 1.35;
-  color: #9ca3af;
-  padding-left: 2px;
-  word-break: keep-all;
-}
-
-.row-readonly.note-input,
-.note-input[readonly],
-.note-input:disabled {
-  color: #111827;
-  background: #f8fafc;
-}
-
 .project-name-link {
   display: block;
   color: inherit;
@@ -1912,11 +1887,17 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   color: #1d4ed8;
 }
 
+/* ===== 비고 UX: 기본 한 줄 / 클릭 시만 확장 / hover 전체보기 ===== */
+
 .note-cell {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.note-input {
+/* 기본 한 줄 표시 */
+.note-inline-input {
   width: 100%;
   height: 38px;
   padding: 0 12px;
@@ -1924,15 +1905,45 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   border-radius: 8px;
   background: #ffffff;
   color: #111827;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: text;
 }
 
-.note-input::placeholder {
-  color: transparent;
+.note-inline-input[readonly] {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: none;
 }
 
+/* 편집용 textarea */
+.note-edit-textarea {
+  display: none;
+  width: 100%;
+  min-height: 96px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  overflow-y: auto;
+}
+
+/* 편집 중일 때만 textarea 표시 */
+.note-cell.is-editing .note-inline-input {
+  display: none;
+}
+
+.note-cell.is-editing .note-edit-textarea {
+  display: block;
+}
+
+/* hover 전체 보기 팝업 */
 .note-full-popup {
   display: none;
   position: absolute;
@@ -1949,8 +1960,26 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   white-space: pre-wrap;
   z-index: 50;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
 }
 
-.note-cell:hover .note-full-popup {
+/* 편집 중 아닐 때만 hover 툴팁 표시 */
+.note-cell:not(.is-editing):hover .note-full-popup {
   display: block;
+}
+
+.note-help {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #9ca3af;
+  padding-left: 2px;
+  word-break: keep-all;
+}
+
+/* 잠금 상태에서도 한 줄 표시 유지 */
+.row-readonly.note-edit-textarea,
+.note-edit-textarea[readonly],
+.note-edit-textarea:disabled {
+  background: #f8fafc;
+  color: #111827;
 }
