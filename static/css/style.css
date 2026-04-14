@@ -1082,13 +1082,24 @@ th {
 
 .projects-table th:nth-child(5),
 .projects-table td:nth-child(5) {
-  width: 80px;
-  min-width: 80px;
+  width: 88px;
+  min-width: 88px;
+  white-space: normal;
+  word-break: keep-all;
+  line-height: 1.35;
 }
 
 .projects-table th:nth-child(6),
 .projects-table td:nth-child(6) {
-  width: 90px;
+  width: 110px;
+  min-width: 110px;
+  white-space: normal;
+  word-break: keep-all;
+  line-height: 1.35;
+}
+
+.projects-table td:nth-child(5) {
+  font-weight: 600;
 }
 
 .projects-table th:nth-child(7),
