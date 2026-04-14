@@ -154,15 +154,6 @@
                {% if stage.status == '해당없음' %}detail-row-na{% endif %}
            "
            data-saved-na="{% if stage.status == '해당없음' %}Y{% else %}N{% endif %}"
-          >
-          <tr
-             class="
-               detail-stage-row
-               {% if stage.status == '승인대기' %}detail-row-approval{% endif %}
-               {% if stage.status == '완료' %}detail-row-complete{% endif %}
-               {% if stage.status == '해당없음' %}detail-row-na{% endif %}
-           "
-           data-saved-na="{% if stage.status == '해당없음' %}Y{% else %}N{% endif %}"
            data-is-master="{% if is_master %}Y{% else %}N{% endif %}"
           >
             <td>{{ stage.stage_order }}. {{ stage.stage_name }}</td>
@@ -357,17 +348,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const rows = document.querySelectorAll('.detail-stage-row');
   let pendingChange = null;
 
-  const changeModal = document.getElementById('change-history-modal');
-  const modalStageName = document.getElementById('modal-stage-name');
-  const modalFieldLabel = document.getElementById('modal-field-label');
-  const modalOldValue = document.getElementById('modal-old-value');
-  const modalNewValue = document.getElementById('modal-new-value');
-  const modalChangedBy = document.getElementById('modal-changed-by');
-  const modalChangeReason = document.getElementById('modal-change-reason');
-  const modalCancelBtn = document.getElementById('modal-cancel-btn');
-  const modalConfirmBtn = document.getElementById('modal-confirm-btn');
-
-  rows.forEach(function (row) {
+rows.forEach(function (row) {
     const checkbox = row.querySelector('.na-checkbox');
     if (!checkbox) return;
 
@@ -388,6 +369,16 @@ document.addEventListener('DOMContentLoaded', function () {
   preview.textContent = value || '-';
   preview.setAttribute('title', value || '');
 }
+
+  const changeModal = document.getElementById('change-history-modal');
+  const modalStageName = document.getElementById('modal-stage-name');
+  const modalFieldLabel = document.getElementById('modal-field-label');
+  const modalOldValue = document.getElementById('modal-old-value');
+  const modalNewValue = document.getElementById('modal-new-value');
+  const modalChangedBy = document.getElementById('modal-changed-by');
+  const modalChangeReason = document.getElementById('modal-change-reason');
+  const modalCancelBtn = document.getElementById('modal-cancel-btn');
+  const modalConfirmBtn = document.getElementById('modal-confirm-btn');
 
 function setReadonly(input) {
   input.disabled = false;
