@@ -1082,8 +1082,8 @@ th {
 
 .projects-table th:nth-child(5),
 .projects-table td:nth-child(5) {
-  width: 95px;
-  min-width: 95px;
+  width: 80px;
+  min-width: 80px;
 }
 
 .projects-table th:nth-child(6),
