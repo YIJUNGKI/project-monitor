@@ -1912,63 +1912,45 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   color: #1d4ed8;
 }
 
-/* ===== 비고 UX 개선 ===== */
-
 .note-cell {
   position: relative;
 }
 
-/* 입력용 textarea */
-.note-textarea {
+.note-input {
   width: 100%;
-  min-height: 36px;
-  max-height: 140px;
-  resize: vertical;
-  padding: 8px 10px;
-  line-height: 1.4;
-  overflow-y: auto;
-}
-
-/* 한줄 표시 */
-.note-preview {
-  display: none;
-  width: 100%;
-  min-height: 36px;
-  padding: 8px 10px;
-  background: #fff;
-  border: 1px solid #d1d5db;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
-
+  background: #ffffff;
+  color: #111827;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-
-  cursor: pointer;
-  font-size: 13px;
-  color: #374151;
 }
 
-/* readonly 상태일 때 */
-.note-readonly .note-textarea {
-  display: none !important;
+.note-input::placeholder {
+  color: transparent;
 }
 
-.note-readonly .note-preview {
-  display: block !important;
-}
-
-/* hover popup */
-.note-popup {
+.note-full-popup {
+  display: none;
   position: absolute;
-  top: 100%;
   left: 0;
+  top: calc(100% + 6px);
   width: 320px;
-  padding: 10px;
+  max-width: 420px;
+  padding: 10px 12px;
   background: #111827;
-  color: #fff;
+  color: #ffffff;
   border-radius: 10px;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   z-index: 50;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.note-cell:hover .note-full-popup {
+  display: block;
 }

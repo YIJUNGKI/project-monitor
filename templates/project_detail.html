@@ -213,25 +213,19 @@
             </td>
 
             <td>
-               <div class="note-cell">
-    
-                  <!-- 입력용 -->
-                  <textarea
-                      name="note_{{ stage.stage_order }}"
-                      class="lock-target note-input note-textarea"
-                      rows="1"
-                      placeholder="비고 입력"
-                  >{{ stage.note or '' }}</textarea>
+              <div class="note-cell">
+              <input
+                type="text"
+                name="note_{{ stage.stage_order }}"
+                value="{{ stage.note or '' }}"
+                class="lock-target note-input"
+                autocomplete="off"
+              >
+              <div class="note-full-popup">{{ stage.note or '' }}</div>
 
-                  <!-- 표시용 (읽기 모드) -->
-                  <div class="note-preview" title="{{ stage.note or '' }}">
-                      {{ stage.note or '' }}
-                  </div>
-
-                  {% if stage.note_help and not stage.note %}
-                  <div class="note-help">{{ stage.note_help }}</div>
-                  {% endif %}
-
+              {% if stage.note_help and not stage.note %}
+              <div class="note-help">{{ stage.note_help }}</div>
+              {% endif %}
               </div>
             </td>
 
