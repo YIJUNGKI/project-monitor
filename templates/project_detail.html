@@ -147,14 +147,14 @@
         <tbody>
           {% for stage in stages %}
           <tr
-             class="
-               detail-stage-row
-               {% if stage.status == '승인대기' %}detail-row-approval{% endif %}
-               {% if stage.status == '완료' %}detail-row-complete{% endif %}
-               {% if stage.status == '해당없음' %}detail-row-na{% endif %}
-           "
-           data-saved-na="{% if stage.status == '해당없음' %}Y{% else %}N{% endif %}"
-           data-is-master="{% if is_master %}Y{% else %}N{% endif %}"
+            class="
+              detail-stage-row
+              {% if stage.status == '승인대기' %}detail-row-approval{% endif %}
+              {% if stage.status == '완료' %}detail-row-complete{% endif %}
+              {% if stage.status == '해당없음' %}detail-row-na{% endif %}
+            "
+            data-saved-na="{% if stage.status == '해당없음' %}Y{% else %}N{% endif %}"
+            data-is-master="{% if is_master %}Y{% else %}N{% endif %}"
           >
             <td>{{ stage.stage_order }}. {{ stage.stage_name }}</td>
 
@@ -202,13 +202,13 @@
 
             <td class="{% if stage.status == '승인대기' %}approval-cell-highlight{% endif %}">
               <input
-                  type="date"
-                  name="approval_{{ stage.stage_order }}"
-                  value="{{ stage.approval_date or '' }}"
-                  class="lock-target approval-input"
-                  style="width: 100%; height: 36px;"
-                  readonly
-                  tabindex="-1"
+                type="date"
+                name="approval_{{ stage.stage_order }}"
+                value="{{ stage.approval_date or '' }}"
+                class="lock-target approval-input"
+                style="width: 100%; height: 36px;"
+                readonly
+                tabindex="-1"
               >
             </td>
 
@@ -232,9 +232,9 @@
                 <div class="note-full-popup">{{ stage.note or '' }}</div>
 
                 {% if stage.note_help and not stage.note %}
-                <div class="note-help">{{ stage.note_help }}</div>
+                  <div class="note-help">{{ stage.note_help }}</div>
                 {% endif %}
-                </div>
+              </div>
             </td>
 
             <td>
@@ -350,69 +350,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const rows = document.querySelectorAll('.detail-stage-row');
   let pendingChange = null;
 
-rows.forEach(function (row) {
-    const checkbox = row.querySelector('.na-checkbox');
-    if (!checkbox) return;
-
-// ===== 비고 클릭 확장 =====
-
-function autoResizeNoteTextarea(el) {
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 180) + 'px';
-}
-
-function syncNoteInline(cell) {
-  const inlineInput = cell.querySelector('.note-inline-input');
-  const textarea = cell.querySelector('.note-edit-textarea');
-  const popup = cell.querySelector('.note-full-popup');
-
-  if (!inlineInput || !textarea) return;
-
-  const value = textarea.value || '';
-  inlineInput.value = value;
-  inlineInput.title = value;
-
-  if (popup) {
-    popup.textContent = value;
-  }
-}
-
-document.querySelectorAll('.note-cell').forEach(function (cell) {
-  const inlineInput = cell.querySelector('.note-inline-input');
-  const textarea = cell.querySelector('.note-edit-textarea');
-
-  if (!inlineInput || !textarea) return;
-
-  syncNoteInline(cell);
-  autoResizeNoteTextarea(textarea);
-
-  inlineInput.addEventListener('click', function () {
-    if (textarea.disabled || textarea.readOnly) return;
-
-    cell.classList.add('is-editing');
-    autoResizeNoteTextarea(textarea);
-    textarea.focus();
-
-    const len = textarea.value.length;
-    textarea.setSelectionRange(len, len);
-  });
-
-  textarea.addEventListener('input', function () {
-    syncNoteInline(cell);
-    autoResizeNoteTextarea(textarea);
-  });
-
-  textarea.addEventListener('blur', function () {
-    syncNoteInline(cell);
-    cell.classList.remove('is-editing');
-  });
-});
-
-    const targets = row.querySelectorAll('.lock-target');
-    const savedNa = row.dataset.savedNa === 'Y';
-    const isMaster = row.dataset.isMaster === 'Y';
-
   const changeModal = document.getElementById('change-history-modal');
   const modalStageName = document.getElementById('modal-stage-name');
   const modalFieldLabel = document.getElementById('modal-field-label');
@@ -423,76 +360,147 @@ document.querySelectorAll('.note-cell').forEach(function (cell) {
   const modalCancelBtn = document.getElementById('modal-cancel-btn');
   const modalConfirmBtn = document.getElementById('modal-confirm-btn');
 
-function setReadonly(input) {
-  input.disabled = false;
-  input.readOnly = true;
-  input.classList.add('row-readonly');
-
-  const cell = input.closest('.note-cell');
-  if (cell) {
-    cell.classList.add('note-readonly');
-    syncNotePreview(input);
+  function autoResizeNoteTextarea(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 180) + 'px';
   }
-}
 
-function setEditable(input) {
-  input.disabled = false;
-  input.readOnly = false;
-  input.classList.remove('row-readonly');
+  function syncNoteInline(cell) {
+    const inlineInput = cell.querySelector('.note-inline-input');
+    const textarea = cell.querySelector('.note-edit-textarea');
+    const popup = cell.querySelector('.note-full-popup');
 
-  const cell = input.closest('.note-cell');
-  if (cell) {
-    cell.classList.remove('note-readonly');
-    syncNotePreview(input);
+    if (!inlineInput || !textarea) return;
+
+    const value = textarea.value || '';
+    inlineInput.value = value;
+    inlineInput.title = value;
+
+    if (popup) {
+      popup.textContent = value;
+    }
   }
-}
 
-function setDisabled(input) {
-  input.disabled = true;
-  input.readOnly = false;
-  input.classList.remove('row-readonly');
-
-  const cell = input.closest('.note-cell');
-  if (cell) {
-    cell.classList.add('note-readonly');
-    syncNotePreview(input);
+  function closeNoteEditor(cell) {
+    if (!cell) return;
+    syncNoteInline(cell);
+    cell.classList.remove('is-editing');
   }
-}
+
+  function openNoteEditor(cell) {
+    if (!cell) return;
+
+    const textarea = cell.querySelector('.note-edit-textarea');
+    if (!textarea) return;
+    if (textarea.disabled || textarea.readOnly) return;
+
+    cell.classList.add('is-editing');
+    autoResizeNoteTextarea(textarea);
+    textarea.focus();
+
+    const len = textarea.value.length;
+    textarea.setSelectionRange(len, len);
+  }
+
+  document.querySelectorAll('.note-cell').forEach(function (cell) {
+    const inlineInput = cell.querySelector('.note-inline-input');
+    const textarea = cell.querySelector('.note-edit-textarea');
+
+    if (!inlineInput || !textarea) return;
+
+    syncNoteInline(cell);
+    autoResizeNoteTextarea(textarea);
+
+    inlineInput.addEventListener('click', function () {
+      openNoteEditor(cell);
+    });
+
+    textarea.addEventListener('input', function () {
+      syncNoteInline(cell);
+      autoResizeNoteTextarea(textarea);
+    });
+
+    textarea.addEventListener('blur', function () {
+      closeNoteEditor(cell);
+    });
+  });
+
+  rows.forEach(function (row) {
+    const checkbox = row.querySelector('.na-checkbox');
+    if (!checkbox) return;
+
+    const targets = row.querySelectorAll('.lock-target');
+    const savedNa = row.dataset.savedNa === 'Y';
+    const isMaster = row.dataset.isMaster === 'Y';
+
+    function setReadonly(input) {
+      input.disabled = false;
+      input.readOnly = true;
+      input.classList.add('row-readonly');
+
+      if (input.classList.contains('note-input')) {
+        const cell = input.closest('.note-cell');
+        closeNoteEditor(cell);
+      }
+    }
+
+    function setEditable(input) {
+      input.disabled = false;
+      input.readOnly = false;
+      input.classList.remove('row-readonly');
+
+      if (input.classList.contains('note-input')) {
+        const cell = input.closest('.note-cell');
+        syncNoteInline(cell);
+      }
+    }
+
+    function setDisabled(input) {
+      input.disabled = true;
+      input.readOnly = false;
+      input.classList.remove('row-readonly');
+
+      if (input.classList.contains('note-input')) {
+        const cell = input.closest('.note-cell');
+        closeNoteEditor(cell);
+      }
+    }
 
     function updateRowLock() {
       const isCompleteRow = row.classList.contains('detail-row-complete');
       const isNaChecked = checkbox.checked;
 
       targets.forEach(function (input) {
-      const isNoteInput = input.classList.contains('note-input');
-      const isApprovalInput = input.classList.contains('approval-input');
+        const isNoteInput = input.classList.contains('note-input');
+        const isApprovalInput = input.classList.contains('approval-input');
 
-      if (isApprovalInput) {
-        setReadonly(input);
-        return;
-      }
-
-      if (isCompleteRow) {
-        setReadonly(input);
-        return;
-      }
-
-      if (savedNa) {
-        setReadonly(input);
-        return;
-      }
-
-      if (isNaChecked) {
-        if (isNoteInput) {
-          setEditable(input);
-        } else {
-          setDisabled(input);
+        if (isApprovalInput) {
+          setReadonly(input);
+          return;
         }
-        return;
-      }
 
-      setEditable(input); 
-    });
+        if (isCompleteRow) {
+          setReadonly(input);
+          return;
+        }
+
+        if (savedNa) {
+          setReadonly(input);
+          return;
+        }
+
+        if (isNaChecked) {
+          if (isNoteInput) {
+            setEditable(input);
+          } else {
+            setDisabled(input);
+          }
+          return;
+        }
+
+        setEditable(input);
+      });
 
       checkbox.disabled = false;
       checkbox.dataset.locked = (isCompleteRow || (savedNa && !isMaster)) ? 'Y' : 'N';
@@ -501,9 +509,8 @@ function setDisabled(input) {
     checkbox.addEventListener('click', function (e) {
       if (checkbox.dataset.locked === 'Y') {
         e.preventDefault();
-        return;
       }
-    }); 
+    });
 
     checkbox.addEventListener('change', function () {
       updateRowLock();
@@ -513,28 +520,13 @@ function setDisabled(input) {
 
         const noteInput = row.querySelector('.note-input');
         if (noteInput) {
-          noteInput.focus();
+          const cell = noteInput.closest('.note-cell');
+          openNoteEditor(cell);
         }
       }
     });
 
     updateRowLock();
-  });
-
-  function autoResizeNote(el) {
-    if (!el || el.tagName !== 'TEXTAREA') return;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
-  }
-
-    el.addEventListener('input', function () {
-      syncNotePreview(this);
-      autoResizeNote(this);
-    });
-
-    el.addEventListener('focus', function () {
-      autoResizeNote(this);
-    });
   });
 
   function openChangeModal(input) {
@@ -632,26 +624,6 @@ function setDisabled(input) {
       closeChangeModal(true);
     }
   });
-
-    el.addEventListener('mouseenter', function () {
-      const text = el.textContent.trim();
-      if (!text || text === '-') return;
-
-      popup = document.createElement('div');
-      popup.className = 'note-popup';
-      popup.textContent = text;
-
-      el.parentElement.appendChild(popup);
-    });
-
-    el.addEventListener('mouseleave', function () {
-      if (popup) {
-        popup.remove();
-        popup = null;
-      }
-    });
-  });
-
 });
 </script>
 
