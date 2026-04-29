@@ -11,6 +11,15 @@
       <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-secondary btn-sm">기본정보 수정</a>
 
       <form method="post"
+          action="{{ url_for('set_hold', project_id=project.id) }}"
+          style="display:inline;"
+          onsubmit="return confirm('이 프로젝트를 보류 처리하시겠습니까?');">
+      <button type="submit" class="btn btn-secondary btn-sm">
+        보류 처리
+      </button>
+    </form>
+
+      <form method="post"
             action="{{ url_for('project_delete', project_id=project.id) }}"
             style="display:inline;"
             onsubmit="return confirm('정말 삭제하시겠습니까?');">

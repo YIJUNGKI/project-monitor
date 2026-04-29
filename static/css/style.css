@@ -1338,10 +1338,14 @@ th {
 }
 
 .card-grid .metric-card:nth-child(5)::before {
-  background: #ca8a04;
+  background: #64748b;
 }
 
 .card-grid .metric-card:nth-child(6)::before {
+  background: #ca8a04;
+}
+
+.card-grid .metric-card:nth-child(7)::before {
   background: #dc2626;
 }
 
@@ -1999,4 +2003,16 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
 .note-edit-textarea:disabled {
   background: #f8fafc;
   color: #111827;
+}
+
+.badge-보류 {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #94a3b8;
+}
+
+
+
+.row-hold td {
+  background: #f8fafc;
 }
