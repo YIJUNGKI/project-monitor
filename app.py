@@ -632,9 +632,9 @@ def dashboard():
         approval_pending_projects.append(item)
 
     for p in release_requested_projects:
-    item = dict(p)
-    item["approval_text"] = "보류 해제 요청 / 승인 필요"
-    approval_pending_projects.append(item)
+        item = dict(p)
+        item["approval_text"] = "보류 해제 요청 / 승인 필요"
+        approval_pending_projects.append(item)
 
     summary = {
         "total": len(projects),
