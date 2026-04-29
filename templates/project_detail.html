@@ -258,11 +258,16 @@
 </section>
 
 <section class="card">
-  <form method="post" action="/projects/{{ project.id }}/update">
+  <form method="post" action="/projects/{{ project.id }}/update" {% if project.get('is_hold') %}onsubmit="return false;"{% endif %}>
 
     <div class="section-header-inline">
       <div class="section-header-left">
         <h2>단계별 현황</h2>
+    {% if project.get('is_hold') %}
+        <p class="section-subtext" style="color:#334155; font-weight:700;">
+           현재 보류중인 프로젝트입니다. 단계 입력은 잠금 처리되며, 보류 해제 요청/승인만 가능합니다.
+        </p>
+    {% endif %}
       </div>
 
       <div class="team-mini-box">
@@ -546,6 +551,25 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  const projectIsHold = "{{ 'Y' if project.get('is_hold') else 'N' }}" === "Y";
+
+  if (projectIsHold) {
+    document.querySelectorAll('.detail-stage-table input, .detail-stage-table textarea, .detail-stage-table select').forEach(function (el) {
+      el.disabled = true;
+      el.classList.add('row-readonly');
+    });
+
+    document.querySelectorAll('.team-mini-table input, #add-team-row, .team-remove-btn').forEach(function (el) {
+      el.disabled = true;
+      el.classList.add('row-readonly');
+    });
+
+    const saveBtn = document.querySelector('form[action="/projects/{{ project.id }}/update"] button[type="submit"]');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = '보류중 입력잠금';
+    }
+  }
   const rows = document.querySelectorAll('.detail-stage-row');
   let pendingChange = null;
 
