@@ -9,83 +9,86 @@
 
     <div style="margin: 10px 0 14px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
 
-      {% if is_master %}
-        <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-secondary btn-sm">기본정보 수정</a>
-      {% endif %}
+  {% if is_master %}
+    <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-secondary btn-sm">기본정보 수정</a>
+  {% endif %}
 
-      {% if project.get('is_hold') %}
+  {% if project.get('is_hold') %}
 
-      {% if project.get('release_requested') %}
-        <span class="badge badge-보류">해제 요청중</span>
+    {% if project.get('release_requested') %}
+      <span class="badge badge-보류">해제 요청중</span>
 
       {% if is_master %}
         <form method="post"
-            action="{{ url_for('release_hold', project_id=project.id) }}"
+              action="{{ url_for('release_hold', project_id=project.id) }}"
+              style="display:inline;"
+              onsubmit="return confirm('보류 해제 요청을 승인하시겠습니까?');">
+          <button type="submit" class="btn btn-secondary btn-sm">
+            해제 승인
+          </button>
+        </form>
+      {% endif %}
+
+    {% else %}
+
+      {% if is_master %}
+        <form method="post"
+              action="{{ url_for('release_hold', project_id=project.id) }}"
+              style="display:inline;"
+              onsubmit="return confirm('보류를 해제하시겠습니까?');">
+          <button type="submit" class="btn btn-secondary btn-sm">
+            보류 해제
+          </button>
+        </form>
+      {% else %}
+        <button type="button"
+                class="btn btn-secondary btn-sm"
+                onclick="document.getElementById('release-request-box').style.display='block';">
+          보류 해제 요청
+        </button>
+      {% endif %}
+
+    {% endif %}
+
+  {% elif project.get('hold_requested') %}
+
+    <span class="badge badge-보류">보류 신청중</span>
+
+    {% if is_master %}
+      <form method="post"
+            action="{{ url_for('set_hold', project_id=project.id) }}"
             style="display:inline;"
-            onsubmit="return confirm('보류 해제 요청을 승인하시겠습니까?');">
+            onsubmit="return confirm('보류 신청을 승인하시겠습니까?');">
         <button type="submit" class="btn btn-secondary btn-sm">
-          해제 승인
+          보류 승인
         </button>
       </form>
     {% endif %}
 
   {% else %}
 
-    {% if is_master %}
-      <form method="post"
-            action="{{ url_for('release_hold', project_id=project.id) }}"
-            style="display:inline;"
-            onsubmit="return confirm('보류를 해제하시겠습니까?');">
-        <button type="submit" class="btn btn-secondary btn-sm">
-          보류 해제
-        </button>
-      </form>
-    {% else %}
-      <button type="button"
-              class="btn btn-secondary btn-sm"
-              onclick="document.getElementById('release-request-box').style.display='block';">
-        보류 해제 요청
-      </button>
-    {% endif %}
+    <button type="button"
+            class="btn btn-secondary btn-sm"
+            onclick="document.getElementById('hold-request-box').style.display='block';">
+      보류 신청
+    </button>
 
   {% endif %}
 
-      {% elif project.get('hold_requested') %}
-        <span class="badge badge-보류">보류 신청중</span>
+  {% if is_master %}
+    <form method="post"
+          action="{{ url_for('project_delete', project_id=project.id) }}"
+          style="display:inline;"
+          onsubmit="return confirm('정말 삭제하시겠습니까?');">
+      <button type="submit"
+              class="btn btn-sm"
+              style="background:#dc2626; color:#fff; border-color:#dc2626;">
+        삭제
+      </button>
+    </form>
+  {% endif %}
 
-        {% if is_master %}
-          <form method="post"
-                action="{{ url_for('set_hold', project_id=project.id) }}"
-                style="display:inline;"
-                onsubmit="return confirm('보류 신청을 승인하시겠습니까?');">
-            <button type="submit" class="btn btn-secondary btn-sm">
-              보류 승인
-            </button>
-          </form>
-        {% endif %}
-
-      {% else %}
-        <button type="button"
-                class="btn btn-secondary btn-sm"
-                onclick="document.getElementById('hold-request-box').style.display='block';">
-          보류 신청
-        </button>
-      {% endif %}
-
-      {% if is_master %}
-        <form method="post"
-              action="{{ url_for('project_delete', project_id=project.id) }}"
-              style="display:inline;"
-              onsubmit="return confirm('정말 삭제하시겠습니까?');">
-          <button type="submit"
-                  class="btn btn-sm"
-                  style="background:#dc2626; color:#fff; border-color:#dc2626;">
-            삭제
-          </button>
-        </form>
-      {% endif %}
-
-    </div>
+</div>
 
     <p>고객사: {{ project.customer }} / 설치위치: {{ project.location }}</p>
     <p>수주일자: {{ project.order_date }} / 납기일: {{ project.due_date }}</p>
