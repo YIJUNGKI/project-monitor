@@ -58,6 +58,7 @@
       <span class="status-legend-badge status-legend-progress">진행</span>
       <span class="status-legend-badge status-legend-approval">승인대기</span>
       <span class="status-legend-badge status-legend-complete">완료</span>
+      <span class="status-legend-badge status-legend-hold">보류</span>
       <span class="status-legend-badge status-legend-delay">지연</span>
       <span class="status-legend-badge status-legend-missing">누락</span>
       <span class="status-legend-badge status-legend-na">해당없음</span>
@@ -130,29 +131,29 @@
               {% set has_delay = project.is_delayed %}
               {% set has_missing = project.is_missing %}
 
-              {% if project.status == '승인대기' %}
-                <span class="badge badge-승인대기">승인대기</span>
+              {% if project.status == '보류' %}
+                 <span class="badge badge-보류">보류</span>
+
+              {% elif project.status == '승인대기' %}
+                 <span class="badge badge-승인대기">승인대기</span>
 
               {% elif has_delay and has_missing %}
-                <span class="badge badge-지연누락">지연·누락</span>
+                 <span class="badge badge-지연누락">지연·누락</span>
 
               {% elif has_delay %}
-                <span class="badge badge-지연">지연</span>
+                 <span class="badge badge-지연">지연</span>
 
               {% elif has_missing %}
-                <span class="badge badge-누락">누락</span>
+                 <span class="badge badge-누락">누락</span>
 
               {% elif project.status == '완료' %}
-                <span class="badge badge-완료">완료</span>
-
-              {% elif project.status == '보류' %}
-                <span class="badge badge-보류">보류</span>
+                 <span class="badge badge-완료">완료</span>
 
               {% elif project.status == '해당없음' %}
-                <span class="badge badge-해당없음">해당없음</span>
+                 <span class="badge badge-해당없음">해당없음</span>
 
               {% else %}
-                <span class="badge badge-진행">진행</span>
+                 <span class="badge badge-진행">진행</span>
               {% endif %}
             </td>
 
@@ -175,7 +176,7 @@
       <a href="/projects/{{ project.id }}" class="delay-item">
         <strong>{{ project.code }}</strong>
         <span>{{ project.name }}</span>
-        <em>{{ project.current_stage_display }} / 승인 필요</em>
+        <em>{{ project.approval_text or (project.current_stage_display ~ ' / 승인 필요') }}</em>
       </a>
       {% else %}
       <div class="empty-panel">현재 승인대기 프로젝트가 없습니다.</div>

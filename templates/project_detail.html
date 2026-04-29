@@ -70,16 +70,32 @@
       <div class="hold-info-box">
         <strong>보류중</strong><br>
         사유: {{ project.get('hold_reason') or '-' }}<br>
-        시작일: {{ project.get('hold_start_date') or '-' }}<br>
-        해제일: {{ project.get('hold_end_date') or '-' }}<br>
-        비고: {{ project.get('hold_memo') or '-' }}
+        보류 시작: {{ project.get('hold_start_date') or '-' }}<br>
+        보류 해제: {{ project.get('hold_end_date') or '-' }}
       </div>
     {% elif project.get('hold_requested') %}
       <div class="hold-info-box">
         <strong>보류 신청중</strong><br>
         신청자: {{ project.get('hold_request_by') or '-' }}<br>
+        신청일시: {{ project.get('hold_request_at') or '-' }}<br>
         신청사유: {{ project.get('hold_request_reason') or '-' }}<br>
-        비고: {{ project.get('hold_memo') or '-' }}
+        비고: {{ project.get('hold_request_memo') or '-' }}
+      </div>
+    {% endif %}
+
+    {% if project.get('hold_history') %}
+      <div class="hold-info-box">
+        <strong>보류 이력</strong>
+        <div style="margin-top:8px;">
+          {% for row in project.get('hold_history')|reverse %}
+            <div style="padding:8px 0; border-top:1px solid #cbd5e1;">
+              <strong>{{ row.type }}</strong> / {{ row.at or '-' }}<br>
+              작성자: {{ row.by or '-' }}<br>
+              사유: {{ row.reason or '-' }}<br>
+              비고: {{ row.memo or '-' }}
+            </div>
+          {% endfor %}
+        </div>
       </div>
     {% endif %}
 
@@ -101,7 +117,7 @@
 
         <div style="margin-bottom:8px;">
           <label>비고</label>
-          <input type="text" name="hold_memo" style="width:100%; height:36px;">
+          <input type="text" name="hold_request_memo" style="width:100%; height:36px;">
         </div>
 
         <button type="submit" class="btn btn-primary btn-sm">신청 저장</button>

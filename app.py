@@ -495,10 +495,12 @@ def enrich_project(project):
     enriched.setdefault("hold_requested", False)
     enriched.setdefault("hold_request_by", "")
     enriched.setdefault("hold_request_reason", "")
+    enriched.setdefault("hold_request_memo", "")
+    enriched.setdefault("hold_request_at", None)
     enriched.setdefault("hold_reason", "")
     enriched.setdefault("hold_start_date", None)
     enriched.setdefault("hold_end_date", None)
-    enriched.setdefault("hold_memo", "")
+    enriched.setdefault("hold_history", [])
     enriched["completed_count"] = completed_count
     enriched["progress_text"] = progress_text
     enriched["progress_percent"] = progress_percent
@@ -599,10 +601,27 @@ def dashboard():
 
     projects = sorted(projects, key=safe_code_sort)
 
-    approval_pending_projects = [
-        p for p in projects
-        if any(stage["status"] == "승인대기" for stage in p["stages"])
-    ]
+    stage_approval_projects = [
+    p for p in projects
+    if any(stage["status"] == "승인대기" for stage in p["stages"])
+]
+
+hold_requested_projects = [
+    p for p in projects
+    if p.get("hold_requested")
+]
+
+approval_pending_projects = []
+
+for p in stage_approval_projects:
+    item = dict(p)
+    item["approval_text"] = f'{p["current_stage_display"]} / 단계 승인 필요'
+    approval_pending_projects.append(item)
+
+for p in hold_requested_projects:
+    item = dict(p)
+    item["approval_text"] = "보류 신청 / 승인 필요"
+    approval_pending_projects.append(item)
 
     summary = {
         "total": len(projects),
@@ -689,10 +708,12 @@ def project_create():
         "hold_requested": False,
         "hold_request_by": "",
         "hold_request_reason": "",
+        "hold_request_memo": "",
+        "hold_request_at": None,
         "hold_reason": "",
         "hold_start_date": None,
         "hold_end_date": None,
-        "hold_memo": "",
+        "hold_history": [],
     }
 
     projects.append(new_project)
@@ -940,10 +961,26 @@ def request_hold(project_id):
     if not project:
         abort(404)
 
+    request_by = request.form.get("hold_request_by", "").strip()
+    reason = request.form.get("hold_request_reason", "").strip()
+    memo = request.form.get("hold_request_memo", "").strip()
+    requested_at = now_kst().strftime("%Y-%m-%d %H:%M:%S")
+
     project["hold_requested"] = True
-    project["hold_request_by"] = request.form.get("hold_request_by", "").strip()
-    project["hold_request_reason"] = request.form.get("hold_request_reason", "").strip()
-    project["hold_memo"] = request.form.get("hold_memo", "").strip()
+    project["hold_request_by"] = request_by
+    project["hold_request_reason"] = reason
+    project["hold_request_memo"] = memo
+    project["hold_request_at"] = requested_at
+
+    history = project.get("hold_history", [])
+    history.append({
+        "type": "보류신청",
+        "at": requested_at,
+        "by": request_by,
+        "reason": reason,
+        "memo": memo,
+    })
+    project["hold_history"] = history
 
     save_projects(projects)
 
@@ -961,10 +998,25 @@ def set_hold(project_id):
     if not project:
         abort(404)
 
+    approved_at = now_kst().strftime("%Y-%m-%d %H:%M:%S")
+    reason = project.get("hold_request_reason", "") or request.form.get("hold_reason", "").strip()
+    memo = project.get("hold_request_memo", "")
+
     project["is_hold"] = True
-    project["hold_start_date"] = now_kst().strftime("%Y-%m-%d")
     project["hold_requested"] = False
-    project["hold_reason"] = project.get("hold_request_reason", "")
+    project["hold_reason"] = reason
+    project["hold_start_date"] = approved_at
+    project["hold_end_date"] = None
+
+    history = project.get("hold_history", [])
+    history.append({
+        "type": "보류승인",
+        "at": approved_at,
+        "by": project.get("hold_request_by", ""),
+        "reason": reason,
+        "memo": memo,
+    })
+    project["hold_history"] = history
 
     save_projects(projects)
     recompute_project(project_id)
@@ -983,8 +1035,21 @@ def release_hold(project_id):
     if not project:
         abort(404)
 
+    released_at = now_kst().strftime("%Y-%m-%d %H:%M:%S")
+
     project["is_hold"] = False
-    project["hold_end_date"] = now_kst().strftime("%Y-%m-%d")
+    project["hold_requested"] = False
+    project["hold_end_date"] = released_at
+
+    history = project.get("hold_history", [])
+    history.append({
+        "type": "보류해제",
+        "at": released_at,
+        "by": "",
+        "reason": "보류 해제",
+        "memo": "",
+    })
+    project["hold_history"] = history
 
     save_projects(projects)
     recompute_project(project_id)
