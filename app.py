@@ -412,7 +412,7 @@ def recompute_project(project_id):
     project["current_stage"] = current_stage["stage_name"]
 
         # ⭐ 보류 최우선
-    if project.get("is_hold"):
+    if project.get("is_hold", False):
         project["status"] = "보류"
 
     elif any(s["status"] == "지연" for s in merged):
@@ -540,9 +540,12 @@ def get_filtered_projects():
             continue
         elif status == "지연" and not project.get("is_delayed", False):
             continue
-        elif status and status not in ["누락", "지연"] and project["status"] != status:
-        elif status == "보류" and project.get("status") != "보류":
+        elif status == "보류":
+        if project.get("status") != "보류":
             continue
+
+        elif status and status not in ["누락", "지연"] and project["status"] != status:
+        continue
 
         if delay == "Y" and not project["is_delayed"]:
             continue
