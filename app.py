@@ -541,11 +541,10 @@ def get_filtered_projects():
         elif status == "지연" and not project.get("is_delayed", False):
             continue
         elif status == "보류":
-        if project.get("status") != "보류":
+            if project.get("status") != "보류":
+                continue
+        elif status and status not in ["누락", "지연", "보류"] and project["status"] != status:
             continue
-
-        elif status and status not in ["누락", "지연"] and project["status"] != status:
-        continue
 
         if delay == "Y" and not project["is_delayed"]:
             continue
