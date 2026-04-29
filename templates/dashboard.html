@@ -97,6 +97,7 @@
         <tbody>
           {% for project in projects %}
           <tr class="
+            {% if project.status == '보류' %}row-hold{% endif %}
             {% if project.is_delayed %}row-delayed{% endif %}
             {% if project.status == '승인대기' %}row-approval{% endif %}
             {% if project.status == '완료' %}row-complete{% endif %}

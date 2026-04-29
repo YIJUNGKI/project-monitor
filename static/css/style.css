@@ -2031,3 +2031,40 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   color: #334155;
   line-height: 1.6;
 }
+
+/* ===== 보류 프로젝트 행 비활성 표시 ===== */
+.row-hold td {
+  background: #f1f5f9 !important;
+  color: #64748b;
+}
+
+.row-hold .project-name,
+.row-hold .project-name-link,
+.row-hold td {
+  color: #64748b !important;
+}
+
+.row-hold .progress-fill {
+  background: #94a3b8 !important;
+}
+
+.row-hold .mini-step {
+  background: #e5e7eb !important;
+  color: #94a3b8 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.row-hold .badge-보류 {
+  background: #cbd5e1;
+  color: #334155;
+  border: 1px solid #64748b;
+}
+
+.row-hold .table-link {
+  color: #64748b;
+}
+
+.row-hold .table-link:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
