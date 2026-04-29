@@ -501,6 +501,10 @@ def enrich_project(project):
     enriched.setdefault("hold_start_date", None)
     enriched.setdefault("hold_end_date", None)
     enriched.setdefault("hold_history", [])
+    enriched.setdefault("release_requested", False)
+    enriched.setdefault("release_request_by", "")
+    enriched.setdefault("release_request_reason", "")
+    enriched.setdefault("release_request_at", None)
     enriched["completed_count"] = completed_count
     enriched["progress_text"] = progress_text
     enriched["progress_percent"] = progress_percent
@@ -612,6 +616,10 @@ def dashboard():
     ]
 
     approval_pending_projects = []
+    release_requested_projects = [
+        p for p in projects
+        if p.get("release_requested")
+    ]
 
     for p in stage_approval_projects:
         item = dict(p)
@@ -622,6 +630,11 @@ def dashboard():
         item = dict(p)
         item["approval_text"] = "보류 신청 / 승인 필요"
         approval_pending_projects.append(item)
+
+    for p in release_requested_projects:
+    item = dict(p)
+    item["approval_text"] = "보류 해제 요청 / 승인 필요"
+    approval_pending_projects.append(item)
 
     summary = {
         "total": len(projects),
@@ -714,6 +727,10 @@ def project_create():
         "hold_start_date": None,
         "hold_end_date": None,
         "hold_history": [],
+        "release_requested": False,
+        "release_request_by": "",
+        "release_request_reason": "",
+        "release_request_at": None,
     }
 
     projects.append(new_project)
@@ -987,6 +1004,38 @@ def request_hold(project_id):
     flash("보류 신청이 등록되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
 
+@app.route("/projects/<int:project_id>/request-release", methods=["POST"])
+def request_release(project_id):
+    projects = load_projects()
+    project = next((p for p in projects if p["id"] == project_id), None)
+
+    if not project:
+        abort(404)
+
+    requested_at = now_kst().strftime("%Y-%m-%d %H:%M:%S")
+    request_by = request.form.get("release_request_by", "").strip()
+    reason = request.form.get("release_request_reason", "").strip()
+
+    project["release_requested"] = True
+    project["release_request_by"] = request_by
+    project["release_request_reason"] = reason
+    project["release_request_at"] = requested_at
+
+    history = project.get("hold_history", [])
+    history.append({
+        "type": "보류해제신청",
+        "at": requested_at,
+        "by": request_by,
+        "reason": reason,
+        "memo": "",
+    })
+    project["hold_history"] = history
+
+    save_projects(projects)
+
+    flash("보류 해제 요청이 등록되었습니다.")
+    return redirect(url_for("project_detail", project_id=project_id))
+
 @app.route("/projects/<int:project_id>/hold", methods=["POST"])
 def set_hold(project_id):
     if not require_master():
@@ -1040,7 +1089,8 @@ def release_hold(project_id):
     project["is_hold"] = False
     project["hold_requested"] = False
     project["hold_end_date"] = released_at
-
+    project["release_requested"] = False
+    
     history = project.get("hold_history", [])
     history.append({
         "type": "보류해제",
