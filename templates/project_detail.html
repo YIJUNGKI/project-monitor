@@ -14,16 +14,41 @@
       {% endif %}
 
       {% if project.get('is_hold') %}
-        {% if is_master %}
-          <form method="post"
-                action="{{ url_for('release_hold', project_id=project.id) }}"
-                style="display:inline;"
-                onsubmit="return confirm('보류를 해제하시겠습니까?');">
-            <button type="submit" class="btn btn-secondary btn-sm">
-              보류 해제
-            </button>
-          </form>
-        {% endif %}
+
+      {% if project.get('release_requested') %}
+        <span class="badge badge-보류">해제 요청중</span>
+
+      {% if is_master %}
+        <form method="post"
+            action="{{ url_for('release_hold', project_id=project.id) }}"
+            style="display:inline;"
+            onsubmit="return confirm('보류 해제 요청을 승인하시겠습니까?');">
+        <button type="submit" class="btn btn-secondary btn-sm">
+          해제 승인
+        </button>
+      </form>
+    {% endif %}
+
+  {% else %}
+
+    {% if is_master %}
+      <form method="post"
+            action="{{ url_for('release_hold', project_id=project.id) }}"
+            style="display:inline;"
+            onsubmit="return confirm('보류를 해제하시겠습니까?');">
+        <button type="submit" class="btn btn-secondary btn-sm">
+          보류 해제
+        </button>
+      </form>
+    {% else %}
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              onclick="document.getElementById('release-request-box').style.display='block';">
+        보류 해제 요청
+      </button>
+    {% endif %}
+
+  {% endif %}
 
       {% elif project.get('hold_requested') %}
         <span class="badge badge-보류">보류 신청중</span>
@@ -67,12 +92,20 @@
     <p>PM: {{ project.pm_name }} / 현재단계: {{ project.current_stage_display }}</p>
 
     {% if project.get('is_hold') %}
-      <div class="hold-info-box">
-        <strong>보류중</strong><br>
-        사유: {{ project.get('hold_reason') or '-' }}<br>
-        보류 시작: {{ project.get('hold_start_date') or '-' }}<br>
-        보류 해제: {{ project.get('hold_end_date') or '-' }}
-      </div>
+  <div class="hold-info-box">
+    <strong>보류중</strong><br>
+    사유: {{ project.get('hold_reason') or '-' }}<br>
+    보류 시작: {{ project.get('hold_start_date') or '-' }}<br>
+    보류 해제: {{ project.get('hold_end_date') or '-' }}
+
+    {% if project.get('release_requested') %}
+      <hr style="border:none; border-top:1px solid #cbd5e1; margin:10px 0;">
+      <strong>보류 해제 요청중</strong><br>
+      요청자: {{ project.get('release_request_by') or '-' }}<br>
+      요청일시: {{ project.get('release_request_at') or '-' }}<br>
+      해제사유: {{ project.get('release_request_reason') or '-' }}
+    {% endif %}
+  </div>
     {% elif project.get('hold_requested') %}
       <div class="hold-info-box">
         <strong>보류 신청중</strong><br>
@@ -114,6 +147,25 @@
         </div>
 
         <button type="submit" class="btn btn-primary btn-sm">신청 저장</button>
+      </form>
+    </div>
+            <div id="release-request-box" class="hold-info-box" style="display:none;">
+      <form method="post" action="{{ url_for('request_release', project_id=project.id) }}">
+        <div style="margin-bottom:8px;">
+          <strong>보류 해제 요청</strong>
+        </div>
+
+        <div style="margin-bottom:8px;">
+          <label>요청자</label>
+          <input type="text" name="release_request_by" required style="width:100%; height:36px;">
+        </div>
+
+        <div style="margin-bottom:8px;">
+          <label>해제 사유</label>
+          <input type="text" name="release_request_reason" required style="width:100%; height:36px;">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-sm">요청 저장</button>
       </form>
     </div>
   </div>
