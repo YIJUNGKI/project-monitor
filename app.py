@@ -508,7 +508,7 @@ def enrich_project(project):
     enriched["completed_count"] = completed_count
     enriched["progress_text"] = progress_text
     enriched["progress_percent"] = progress_percent
-    enriched["progress_color"] = get_progress_color(progress_percent, project.get("is_delayed", False))
+    enriched["progress_color"] = "gray" if project.get("is_hold") else get_progress_color(progress_percent, project.get("is_delayed", False))
     enriched["current_stage_display"] = current_stage_display
     enriched["is_missing"] = project.get("is_missing", False)
     enriched["stage_mini_view"] = build_stage_mini_view(stages)
@@ -638,12 +638,12 @@ def dashboard():
 
     summary = {
         "total": len(projects),
-        "in_progress": sum(1 for p in projects if p["status"] == "진행"),
+        "in_progress": sum(1 for p in projects if p.get("status") == "진행"),
         "approval_pending": len(approval_pending_projects),
-        "completed": sum(1 for p in projects if p["status"] == "완료"),
-        "missing": sum(1 for p in projects if p.get("is_missing")),
-        "delayed": sum(1 for p in projects if p.get("is_delayed")),
+        "completed": sum(1 for p in projects if p.get("status") == "완료"),
         "hold": sum(1 for p in projects if p.get("status") == "보류"),
+        "missing": sum(1 for p in projects if p.get("is_missing") and p.get("status") != "보류"),
+        "delayed": sum(1 for p in projects if p.get("is_delayed") and p.get("status") != "보류"),
     }
 
     delayed_projects = [p for p in projects if p.get("is_delayed")]
