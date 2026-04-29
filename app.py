@@ -491,6 +491,14 @@ def enrich_project(project):
     current_stage_display = f'{project["current_stage_order"]} {project["current_stage"]}'
 
     enriched = dict(project)
+    enriched.setdefault("is_hold", False)
+    enriched.setdefault("hold_requested", False)
+    enriched.setdefault("hold_request_by", "")
+    enriched.setdefault("hold_request_reason", "")
+    enriched.setdefault("hold_reason", "")
+    enriched.setdefault("hold_start_date", None)
+    enriched.setdefault("hold_end_date", None)
+    enriched.setdefault("hold_memo", "")
     enriched["completed_count"] = completed_count
     enriched["progress_text"] = progress_text
     enriched["progress_percent"] = progress_percent
