@@ -146,6 +146,34 @@
   </div>
 </div>
 
+<div id="hold-history-modal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:680px; max-width:94%; border-radius:12px; padding:20px; max-height:80vh; overflow:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0;">보류 이력</h3>
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              onclick="document.getElementById('hold-history-modal').style.display='none';">
+        닫기
+      </button>
+    </div>
+
+    {% if project.get('hold_history') %}
+      {% for row in project.get('hold_history')|reverse %}
+        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px; margin-bottom:12px;">
+          <div style="margin-bottom:6px;"><strong>구분</strong>: {{ row.type or '-' }}</div>
+          <div style="margin-bottom:6px;"><strong>일시</strong>: {{ row.at or '-' }}</div>
+          <div style="margin-bottom:6px;"><strong>작성자</strong>: {{ row.by or '-' }}</div>
+          <div style="margin-bottom:6px;"><strong>사유</strong>: {{ row.reason or '-' }}</div>
+          <div><strong>비고</strong>: {{ row.memo or '-' }}</div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">보류 이력이 없습니다.</p>
+    {% endif %}
+  </div>
+</div>
+
   <div class="detail-side">
     {% set has_delay = project.is_delayed %}
     {% set has_missing = project.is_missing %}
