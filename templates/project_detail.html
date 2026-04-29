@@ -84,19 +84,12 @@
     {% endif %}
 
     {% if project.get('hold_history') %}
-      <div class="hold-info-box">
-        <strong>보류 이력</strong>
-        <div style="margin-top:8px;">
-          {% for row in project.get('hold_history')|reverse %}
-            <div style="padding:8px 0; border-top:1px solid #cbd5e1;">
-              <strong>{{ row.type }}</strong> / {{ row.at or '-' }}<br>
-              작성자: {{ row.by or '-' }}<br>
-              사유: {{ row.reason or '-' }}<br>
-              비고: {{ row.memo or '-' }}
-            </div>
-          {% endfor %}
-        </div>
-      </div>
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              style="margin-top:10px;"
+              onclick="document.getElementById('hold-history-modal').style.display='flex';">
+        보류 이력보기
+      </button>
     {% endif %}
 
     <div id="hold-request-box" class="hold-info-box" style="display:none;">
@@ -124,6 +117,34 @@
       </form>
     </div>
   </div>
+
+<div id="hold-history-modal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:680px; max-width:94%; border-radius:12px; padding:20px; max-height:80vh; overflow:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0;">보류 이력</h3>
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              onclick="document.getElementById('hold-history-modal').style.display='none';">
+        닫기
+      </button>
+    </div>
+
+    {% if project.get('hold_history') %}
+      {% for row in project.get('hold_history')|reverse %}
+        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px; margin-bottom:12px;">
+          <div style="margin-bottom:6px;"><strong>구분</strong>: {{ row.type or '-' }}</div>
+          <div style="margin-bottom:6px;"><strong>일시</strong>: {{ row.at or '-' }}</div>
+          <div style="margin-bottom:6px;"><strong>작성자</strong>: {{ row.by or '-' }}</div>
+          <div style="margin-bottom:6px;"><strong>사유</strong>: {{ row.reason or '-' }}</div>
+          <div><strong>비고</strong>: {{ row.memo or '-' }}</div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">보류 이력이 없습니다.</p>
+    {% endif %}
+  </div>
+</div>
 
   <div class="detail-side">
     {% set has_delay = project.is_delayed %}
