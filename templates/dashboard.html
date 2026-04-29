@@ -27,6 +27,11 @@
     <strong>{{ summary.completed }}</strong>
   </a>
 
+  <a href="/projects?status=보류" class="card metric-card metric-link-card">
+  <span>보류</span>
+  <strong>{{ summary.hold }}</strong>
+  </a>
+
   <a href="/projects?status=누락" class="card metric-card metric-link-card">
     <span>누락</span>
     <strong>{{ summary.missing }}</strong>
@@ -94,6 +99,7 @@
             {% if project.is_delayed %}row-delayed{% endif %}
             {% if project.status == '승인대기' %}row-approval{% endif %}
             {% if project.status == '완료' %}row-complete{% endif %}
+            {% if project.status == '보류' %}row-hold{% endif %}
           ">
             <td>{{ project.code }}</td>
             <td class="project-name-cell">
@@ -138,6 +144,9 @@
 
               {% elif project.status == '완료' %}
                 <span class="badge badge-완료">완료</span>
+
+              {% elif project.status == '보류' %}
+                <span class="badge badge-보류">보류</span>
 
               {% elif project.status == '해당없음' %}
                 <span class="badge badge-해당없음">해당없음</span>

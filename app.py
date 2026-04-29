@@ -411,14 +411,24 @@ def recompute_project(project_id):
     project["current_stage_order"] = current_stage["stage_order"]
     project["current_stage"] = current_stage["stage_name"]
 
-    if any(s["status"] == "승인대기" for s in merged):
+        # ⭐ 보류 최우선
+    if project.get("is_hold"):
+        project["status"] = "보류"
+
+    elif any(s["status"] == "지연" for s in merged):
+        project["status"] = "지연"
+
+    elif any(s["status"] == "승인대기" for s in merged):
         project["status"] = "승인대기"
+
     elif all(s["status"] in ["완료", "해당없음"] for s in merged):
         project["status"] = "완료"
+
     elif any(s["status"] == "진행" for s in merged):
         project["status"] = "진행"
+
     else:
-        project["status"] = "진행"
+        project["status"] = "누락"
 
     save_projects(projects)
 
@@ -531,6 +541,7 @@ def get_filtered_projects():
         elif status == "지연" and not project.get("is_delayed", False):
             continue
         elif status and status not in ["누락", "지연"] and project["status"] != status:
+        elif status == "보류" and project.get("status") != "보류":
             continue
 
         if delay == "Y" and not project["is_delayed"]:
@@ -590,6 +601,7 @@ def dashboard():
         "completed": sum(1 for p in projects if p["status"] == "완료"),
         "missing": sum(1 for p in projects if p.get("is_missing")),
         "delayed": sum(1 for p in projects if p.get("is_delayed")),
+        "hold": sum(1 for p in projects if p.get("status") == "보류"),
     }
 
     delayed_projects = [p for p in projects if p.get("is_delayed")]
@@ -607,7 +619,7 @@ def projects():
     # recompute_all_projects()
     filtered_projects, keyword, status, delay = get_filtered_projects()
     filtered_projects = sorted(filtered_projects, key=safe_code_sort)
-    status_options = ["진행", "승인대기", "완료", "지연", "누락"]
+    status_options = ["진행", "승인대기", "완료", "보류", "지연", "누락"]
 
     return render_template(
         "projects.html",
@@ -665,6 +677,10 @@ def project_create():
         "is_delayed": False,
         "is_missing": True,
         "is_deleted": False,
+        "is_hold": False,
+        "hold_reason": "",
+        "hold_start_date": None,
+        "hold_end_date": None,
     }
 
     projects.append(new_project)
@@ -904,6 +920,25 @@ def update_project(project_id):
     flash("프로젝트 상세가 수정되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
 
+@app.route("/projects/<int:project_id>/hold", methods=["POST"])
+def set_hold(project_id):
+    if not require_master():
+        return redirect(url_for("project_detail", project_id=project_id))
+
+    projects = load_projects()
+    project = next((p for p in projects if p["id"] == project_id), None)
+
+    if not project:
+        abort(404)
+
+    project["is_hold"] = True
+    project["hold_start_date"] = now_kst().strftime("%Y-%m-%d")
+
+    save_projects(projects)
+    recompute_project(project_id)
+
+    flash("프로젝트가 보류 처리되었습니다.")
+    return redirect(url_for("project_detail", project_id=project_id))
 
 @app.route("/projects/<int:project_id>/delete", methods=["POST"])
 def project_delete(project_id: int):
