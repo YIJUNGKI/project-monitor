@@ -676,13 +676,15 @@ def project_create():
         "pm_name": pm_name,
         "current_stage": STAGE_MASTER[0]["stage_name"],
         "current_stage_order": STAGE_MASTER[0]["stage_order"],
-        "is_delayed": False,
-        "is_missing": True,
         "is_deleted": False,
         "is_hold": False,
+        "hold_requested": False,
+        "hold_request_by": "",
+        "hold_request_reason": "",
         "hold_reason": "",
         "hold_start_date": None,
         "hold_end_date": None,
+        "hold_memo": "",
     }
 
     projects.append(new_project)
@@ -922,6 +924,24 @@ def update_project(project_id):
     flash("프로젝트 상세가 수정되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
 
+@app.route("/projects/<int:project_id>/request-hold", methods=["POST"])
+def request_hold(project_id):
+    projects = load_projects()
+    project = next((p for p in projects if p["id"] == project_id), None)
+
+    if not project:
+        abort(404)
+
+    project["hold_requested"] = True
+    project["hold_request_by"] = request.form.get("hold_request_by", "").strip()
+    project["hold_request_reason"] = request.form.get("hold_request_reason", "").strip()
+    project["hold_memo"] = request.form.get("hold_memo", "").strip()
+
+    save_projects(projects)
+
+    flash("보류 신청이 등록되었습니다.")
+    return redirect(url_for("project_detail", project_id=project_id))
+
 @app.route("/projects/<int:project_id>/hold", methods=["POST"])
 def set_hold(project_id):
     if not require_master():
@@ -935,11 +955,33 @@ def set_hold(project_id):
 
     project["is_hold"] = True
     project["hold_start_date"] = now_kst().strftime("%Y-%m-%d")
+    project["hold_requested"] = False
+    project["hold_reason"] = project.get("hold_request_reason", "")
 
     save_projects(projects)
     recompute_project(project_id)
 
     flash("프로젝트가 보류 처리되었습니다.")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+@app.route("/projects/<int:project_id>/release-hold", methods=["POST"])
+def release_hold(project_id):
+    if not require_master():
+        return redirect(url_for("project_detail", project_id=project_id))
+
+    projects = load_projects()
+    project = next((p for p in projects if p["id"] == project_id), None)
+
+    if not project:
+        abort(404)
+
+    project["is_hold"] = False
+    project["hold_end_date"] = now_kst().strftime("%Y-%m-%d")
+
+    save_projects(projects)
+    recompute_project(project_id)
+
+    flash("보류가 해제되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
 
 @app.route("/projects/<int:project_id>/delete", methods=["POST"])
