@@ -602,26 +602,26 @@ def dashboard():
     projects = sorted(projects, key=safe_code_sort)
 
     stage_approval_projects = [
-    p for p in projects
-    if any(stage["status"] == "승인대기" for stage in p["stages"])
-]
+        p for p in projects
+        if any(stage["status"] == "승인대기" for stage in p["stages"])
+    ]
 
-hold_requested_projects = [
-    p for p in projects
-    if p.get("hold_requested")
-]
+    hold_requested_projects = [
+        p for p in projects
+        if p.get("hold_requested")
+    ]
 
-approval_pending_projects = []
+    approval_pending_projects = []
 
-for p in stage_approval_projects:
-    item = dict(p)
-    item["approval_text"] = f'{p["current_stage_display"]} / 단계 승인 필요'
-    approval_pending_projects.append(item)
+    for p in stage_approval_projects:
+        item = dict(p)
+        item["approval_text"] = f'{p["current_stage_display"]} / 단계 승인 필요'
+        approval_pending_projects.append(item)
 
-for p in hold_requested_projects:
-    item = dict(p)
-    item["approval_text"] = "보류 신청 / 승인 필요"
-    approval_pending_projects.append(item)
+    for p in hold_requested_projects:
+        item = dict(p)
+        item["approval_text"] = "보류 신청 / 승인 필요"
+        approval_pending_projects.append(item)
 
     summary = {
         "total": len(projects),
