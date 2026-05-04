@@ -2055,6 +2055,7 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
 }
 
 .row-hold .badge-보류 {
+
   background: #cbd5e1;
   color: #334155;
   border: 1px solid #64748b;
@@ -2067,4 +2068,24 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
 .row-hold .table-link:hover {
   background: #e2e8f0;
   color: #334155;
+}
+
+.metric-card-delay {
+  border: 1px solid #fecaca;
+  background: linear-gradient(135deg, #fff7f7, #ffffff);
+}
+
+.metric-card-delay span {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.metric-card-delay strong {
+  color: #dc2626;
+}
+
+.metric-card-delay:hover {
+  border-color: #f87171;
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.14);
+  transform: translateY(-2px);
 }
