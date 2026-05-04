@@ -360,7 +360,10 @@ def merge_stages(project_id: int):
         # 5단계가 준비되면 이후는 기본 계산값(누락/승인대기/완료)을 그대로 사용
         if master["stage_order"] in ["6", "7", "7-1", "8", "9"] and not is_not_applicable:
             stage5 = next((s for s in merged if s["stage_order"] == "5"), None)
-            stage5_ready = stage5 and stage5.get("status") in ["완료", "해당없음"]
+            stage5_ready = stage5 and (
+            stage5.get("status") in ["완료", "해당없음", "승인대기"]
+            or bool(stage5.get("actual_date"))
+        )
 
             if not stage5_ready:
                 status = "미착수"
@@ -560,10 +563,13 @@ def get_filtered_projects():
         elif status and status not in ["누락", "지연", "보류"] and project["status"] != status:
             continue
 
-        if delay == "Y" and not project["is_delayed"]:
-            continue
-        if delay == "N" and project["is_delayed"]:
-            continue
+        if delay == "Y":
+            if not project["is_delayed"] or project.get("status") == "보류":
+                continue
+
+        if delay == "N":
+            if project["is_delayed"]:
+                continue
 
         filtered.append(project)
 
