@@ -2249,3 +2249,63 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   cursor: help;
   vertical-align: middle;
 }
+
+/* ===== KPI Heatmap ===== */
+
+.heatmap-wrap {
+  margin-top: 14px;
+}
+
+.heatmap-header,
+.heatmap-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.heatmap-project-col,
+.heatmap-project {
+  width: 90px;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.heatmap-stage-cols,
+.heatmap-cells {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+  flex: 1;
+}
+
+.heatmap-stage-cols span {
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.heatmap-cell {
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid #dbe2ea;
+}
+
+.heat-empty {
+  background: #f3f4f6;
+}
+
+.heat-done {
+  background: #86efac;
+}
+
+.heat-progress {
+  background: #93c5fd;
+}
+
+.heat-delay {
+  background: #fca5a5;
+}
+
+.heat-hold {
+  background: #fde68a;
+}

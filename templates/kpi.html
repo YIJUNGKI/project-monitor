@@ -146,6 +146,54 @@
   </div>
 </section>
 
+<section class="card" style="margin-top:18px;">
+  <div class="section-title">
+    <h2>단계 체류 분포</h2>
+    <p class="section-subtext">
+      프로젝트별 단계 상태를 Heatmap 형태로 표시합니다.
+    </p>
+  </div>
+
+  <div class="heatmap-wrap">
+
+    <div class="heatmap-header">
+      <div class="heatmap-project-col">프로젝트</div>
+
+      <div class="heatmap-stage-cols">
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+        <span>4</span>
+        <span>5</span>
+        <span>6</span>
+        <span>7</span>
+        <span>7-1</span>
+        <span>8</span>
+        <span>9</span>
+      </div>
+    </div>
+
+    {% for row in heatmap_rows %}
+    <div class="heatmap-row">
+
+      <div class="heatmap-project"
+           title="{{ row.code }} / {{ row.name }}&#10;현재단계: {{ row.current_stage }}">
+        {{ row.code }}
+      </div>
+
+      <div class="heatmap-cells">
+        {% for cell in row.cells %}
+        <div class="heatmap-cell {{ cell.class }}"
+             title="{{ cell.tooltip }}">
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
 <div id="kpi-history-modal"
      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
 
