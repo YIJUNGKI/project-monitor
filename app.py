@@ -1121,6 +1121,8 @@ def update_project(project_id):
 
         old_planned_date = existing_stage.get("planned_date")
         old_actual_date = existing_stage.get("actual_date")
+        old_note = existing_stage.get("note", "")
+        old_is_not_applicable = existing_stage.get("is_not_applicable", False)
 
         changed_by_planned = request.form.get(f"changed_by_planned_{key}", "").strip()
         change_reason_planned = request.form.get(f"change_reason_planned_{key}", "").strip()
@@ -1140,6 +1142,30 @@ def update_project(project_id):
                     changed_by=changed_by_planned,
                     change_reason=change_reason_planned,
                 )
+ 
+        if old_note != note:
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=key,
+        field_name="note",
+        field_label="비고",
+        old_value=old_note,
+        new_value=note,
+        changed_by="사용자",
+        change_reason="비고 수정",
+    )
+
+if old_is_not_applicable != is_not_applicable:
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=key,
+        field_name="not_applicable",
+        field_label="해당없음",
+        old_value="Y" if old_is_not_applicable else "N",
+        new_value="Y" if is_not_applicable else "N",
+        changed_by="사용자",
+        change_reason="해당없음 변경",
+    )              
 
         if old_actual_date != actual_date:
             if changed_by_actual and change_reason_actual:
@@ -1227,6 +1253,17 @@ def request_hold(project_id):
     })
     project["hold_history"] = history
 
+    add_stage_change_history(
+    project_id=project_id,
+    stage_order="-",
+    field_name="hold_request",
+    field_label="보류 신청",
+    old_value="",
+    new_value=reason,
+    changed_by=request_by or "사용자",
+    change_reason=memo or "보류 신청",
+)
+
     save_projects(projects)
 
     flash("보류 신청이 등록되었습니다.")
@@ -1258,6 +1295,17 @@ def request_release(project_id):
         "memo": "",
     })
     project["hold_history"] = history
+
+    add_stage_change_history(
+    project_id=project_id,
+    stage_order="-",
+    field_name="release_request",
+    field_label="보류 해제 요청",
+    old_value="",
+    new_value=reason,
+    changed_by=request_by or "사용자",
+    change_reason="보류 해제 요청",
+)
 
     save_projects(projects)
 
@@ -1295,6 +1343,17 @@ def set_hold(project_id):
     })
     project["hold_history"] = history
 
+    add_stage_change_history(
+    project_id=project_id,
+    stage_order="-",
+    field_name="hold_approved",
+    field_label="보류 승인",
+    old_value="진행",
+    new_value="보류",
+    changed_by=project.get("hold_request_by", "") or "마스터",
+    change_reason=reason or "보류 승인",
+)
+
     save_projects(projects)
     recompute_project(project_id)
 
@@ -1329,6 +1388,16 @@ def release_hold(project_id):
     })
     project["hold_history"] = history
 
+    add_stage_change_history(
+    project_id=project_id,
+    stage_order="-",
+    field_name="hold_released",
+    field_label="보류 해제",
+    old_value="보류",
+    new_value="진행",
+    changed_by="마스터",
+    change_reason="보류 해제",
+)
     save_projects(projects)
     recompute_project(project_id)
 
@@ -1388,9 +1457,24 @@ def approve_stage(project_id: int, stage_order: str):
         return redirect(url_for("project_detail", project_id=project_id))
 
     if target.get("actual_date") and not target.get("approval_date"):
-        target["approval_date"] = now_kst().strftime("%Y-%m-%d")
-        save_project_stages(project_id, stages)
-        flash("승인 처리되었습니다.")
+    old_approval_date = target.get("approval_date")
+    new_approval_date = now_kst().strftime("%Y-%m-%d")
+
+    target["approval_date"] = new_approval_date
+    save_project_stages(project_id, stages)
+
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=stage_order,
+        field_name="approval_date",
+        field_label="승인일(품질팀)",
+        old_value=old_approval_date,
+        new_value=new_approval_date,
+        changed_by="마스터",
+        change_reason="단계 승인",
+    )
+
+    flash("승인 처리되었습니다.")
 
     recompute_project(project_id)
     return redirect(url_for("project_detail", project_id=project_id))
@@ -1412,8 +1496,20 @@ def cancel_approve_stage(project_id: int, stage_order: str):
         abort(404)
 
     if target.get("approval_date"):
-        target["approval_date"] = None
-        save_project_stages(project_id, stages)
+    old_approval_date = target.get("approval_date")
+    target["approval_date"] = None
+    save_project_stages(project_id, stages)
+
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=stage_order,
+        field_name="approval_date",
+        field_label="승인취소",
+        old_value=old_approval_date,
+        new_value="",
+        changed_by="마스터",
+        change_reason="승인 취소",
+    )
 
     recompute_project(project_id)
     flash("승인이 취소되었습니다.")
