@@ -1244,6 +1244,19 @@ def project_stage_history(project_id: int, stage_order: str):
         "items": rows
     })
 
+@app.route("/projects/<int:project_id>/history")
+def project_all_history(project_id: int):
+    project = find_project(project_id)
+    if not project:
+        abort(404)
+
+    rows = get_project_history(project_id)
+    rows = sorted(rows, key=lambda x: x.get("changed_at", ""), reverse=True)
+
+    return jsonify({
+        "ok": True,
+        "items": rows
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)

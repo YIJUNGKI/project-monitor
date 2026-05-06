@@ -14,6 +14,13 @@
        class="btn btn-secondary btn-sm">기본정보 수정</a>
   {% endif %}
 
+<button type="button"
+        class="btn btn-secondary btn-sm"
+        id="project-history-view-btn"
+        data-project-id="{{ project.id }}">
+  전체 변경이력
+</button>
+
   {% if project.get('is_hold') %}
 
     {% if project.get('release_requested') %}
@@ -543,6 +550,20 @@
           <button type="button" class="btn btn-secondary btn-sm" id="history-close-btn">닫기</button>
         </div>
 
+<div id="project-history-modal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:980px; max-width:96%; border-radius:12px; padding:20px; max-height:82vh; overflow:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0;">전체 변경이력</h3>
+      <button type="button" class="btn btn-secondary btn-sm" id="project-history-close-btn">닫기</button>
+    </div>
+
+    <div id="project-history-body">
+      <p class="muted">이력을 불러오는 중입니다.</p>
+    </div>
+  </div>
+</div>
+
         <div id="history-list-body">
           <p class="muted">이력을 불러오는 중입니다.</p>
         </div>
@@ -948,6 +969,91 @@ document.addEventListener('DOMContentLoaded', function () {
   historyModal.addEventListener('click', function (e) {
     if (e.target === historyModal) {
       historyModal.style.display = 'none';
+    }
+  });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const openBtn = document.getElementById('project-history-view-btn');
+  const modal = document.getElementById('project-history-modal');
+  const body = document.getElementById('project-history-body');
+  const closeBtn = document.getElementById('project-history-close-btn');
+
+  if (!openBtn || !modal || !body || !closeBtn) return;
+
+  openBtn.addEventListener('click', function () {
+    const projectId = this.dataset.projectId;
+
+    body.innerHTML = '<p class="muted">이력을 불러오는 중입니다.</p>';
+    modal.style.display = 'flex';
+
+    fetch(`/projects/${projectId}/history`)
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data.ok || !data.items) {
+          body.innerHTML = '<p>전체 변경이력 조회에 실패했습니다.</p>';
+          return;
+        }
+
+        if (data.items.length === 0) {
+          body.innerHTML = '<p class="muted">변경이력이 없습니다.</p>';
+          return;
+        }
+
+        let html = `
+          <div class="table-wrap">
+            <table class="project-history-table">
+              <thead>
+                <tr>
+                  <th>변경일시</th>
+                  <th>단계</th>
+                  <th>항목</th>
+                  <th>변경전</th>
+                  <th>변경후</th>
+                  <th>변경자</th>
+                  <th>사유</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        data.items.forEach(function (item) {
+          html += `
+            <tr>
+              <td>${item.changed_at || '-'}</td>
+              <td>${item.stage_order || '-'}</td>
+              <td>${item.field_label || '-'}</td>
+              <td>${item.old_value || '-'}</td>
+              <td>${item.new_value || '-'}</td>
+              <td>${item.changed_by || '-'}</td>
+              <td>${item.change_reason || '-'}</td>
+            </tr>
+          `;
+        });
+
+        html += `
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        body.innerHTML = html;
+      })
+      .catch(function () {
+        body.innerHTML = '<p>전체 변경이력 조회 중 오류가 발생했습니다.</p>';
+      });
+  });
+
+  closeBtn.addEventListener('click', function () {
+    modal.style.display = 'none';
+  });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) {
+      modal.style.display = 'none';
     }
   });
 });
