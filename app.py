@@ -202,6 +202,19 @@ def add_days(date_str, days):
         return None
     return (d + timedelta(days=days)).strftime("%Y-%m-%d")
 
+def get_stage_deadline(stage_order, planned_date):
+    """
+    단계별 지연 판단 기준일 계산
+    """
+
+    if not planned_date:
+        return None
+
+    # 설명회(3단계)는 계획일 +3일 까지 허용
+    if str(stage_order) == "3":
+        return add_days(planned_date, 3)
+
+    return planned_date
 
 def get_project_history(project_id: int):
     return load_project_history(project_id)
@@ -301,6 +314,8 @@ def compute_stage_status(stage_order, assignee_name, planned_date, actual_date, 
         return "해당없음"
 
     planned = parse_date(planned_date)
+    deadline_date = get_stage_deadline(stage_order, planned_date)
+    deadline = parse_date(deadline_date)
     actual = parse_date(actual_date)
     approval = parse_date(approval_date)
     today = datetime.today().date()
@@ -321,8 +336,8 @@ def compute_stage_status(stage_order, assignee_name, planned_date, actual_date, 
     ):
         return "누락"
 
-    if planned and not actual:
-        if planned < today:
+    if deadline and not actual:
+        if deadline < today:
             return "지연"
         return "진행"
 
