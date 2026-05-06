@@ -152,7 +152,15 @@
           <input type="text" name="hold_request_memo" style="width:100%; height:36px;">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-sm">신청 저장</button>
+        <div style="display:flex; gap:8px;">
+  <button type="submit" class="btn btn-primary btn-sm">신청 저장</button>
+
+  <button type="button"
+          class="btn btn-secondary btn-sm"
+          onclick="document.getElementById('hold-request-box').style.display='none';">
+    닫기
+  </button>
+</div>
       </form>
     </div>
             <div id="release-request-box" class="hold-info-box" style="display:none;">
@@ -171,7 +179,15 @@
           <input type="text" name="release_request_reason" required style="width:100%; height:36px;">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-sm">요청 저장</button>
+        <div style="display:flex; gap:8px;">
+  <button type="submit" class="btn btn-primary btn-sm">요청 저장</button>
+
+  <button type="button"
+          class="btn btn-secondary btn-sm"
+          onclick="document.getElementById('release-request-box').style.display='none';">
+    닫기
+  </button>
+</div>
       </form>
     </div>
   </div>
