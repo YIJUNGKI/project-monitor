@@ -2089,3 +2089,57 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   box-shadow: 0 10px 24px rgba(220, 38, 38, 0.14);
   transform: translateY(-2px);
 }
+
+/* ===== dashboard bottom split ===== */
+
+.dashboard-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.delay-item-danger {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.delay-item-danger em {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 상세 단계 상태 강조 ===== */
+
+.detail-row-delay td {
+  background: #fef2f2;
+}
+
+.detail-row-delay input,
+.detail-row-delay textarea {
+  background: #fff7f7;
+  border-color: #fca5a5;
+}
+
+.detail-row-delay .badge {
+  box-shadow: 0 0 0 1px rgba(220,38,38,0.15);
+}
+
+.detail-row-missing td {
+  background: #fffbeb;
+}
+
+.detail-row-missing input,
+.detail-row-missing textarea {
+  background: #fffdf5;
+  border-color: #fcd34d;
+}
+
+.detail-row-missing .badge {
+  box-shadow: 0 0 0 1px rgba(202,138,4,0.15);
+}

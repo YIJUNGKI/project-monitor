@@ -167,11 +167,14 @@
   </div>
 </section>
 
-<section class="dashboard-bottom">
+<section class="dashboard-bottom dashboard-bottom-grid">
+
+  <!-- 승인 필요 -->
   <div class="card">
     <div class="section-title">
       <h2>승인 필요</h2>
     </div>
+
     <div class="delay-list">
       {% for project in approval_pending_projects %}
       <a href="/projects/{{ project.id }}" class="delay-item">
@@ -184,5 +187,25 @@
       {% endfor %}
     </div>
   </div>
+
+  <!-- 지연 프로젝트 -->
+  <div class="card">
+    <div class="section-title">
+      <h2>지연 프로젝트</h2>
+    </div>
+
+    <div class="delay-list">
+      {% for project in delayed_projects %}
+      <a href="/projects/{{ project.id }}" class="delay-item delay-item-danger">
+        <strong>{{ project.code }}</strong>
+        <span>{{ project.name }}</span>
+        <em>{{ project.current_stage_display }} / 지연 발생</em>
+      </a>
+      {% else %}
+      <div class="empty-panel">현재 지연 프로젝트가 없습니다.</div>
+      {% endfor %}
+    </div>
+  </div>
+
 </section>
 {% endblock %}

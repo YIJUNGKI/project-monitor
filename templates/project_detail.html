@@ -356,6 +356,8 @@
               {% if stage.status == '승인대기' %}detail-row-approval{% endif %}
               {% if stage.status == '완료' %}detail-row-complete{% endif %}
               {% if stage.status == '해당없음' %}detail-row-na{% endif %}
+              {% if stage.status == '지연' %}detail-row-delay{% endif %}
+              {% if stage.status == '누락' %}detail-row-missing{% endif %}
             "
             data-saved-na="{% if stage.status == '해당없음' %}Y{% else %}N{% endif %}"
             data-is-master="{% if is_master %}Y{% else %}N{% endif %}"
