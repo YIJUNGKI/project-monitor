@@ -251,7 +251,7 @@ def get_stage_history_rows(project_id: int, stage_order: str):
     rows = [
         row for row in history_rows
         if str(row.get("stage_order")) == str(stage_order)
-        and row.get("field_name") in ["planned_date", "actual_date", "approval"]
+        and row.get("field_name") in ["planned_date", "actual_date", "approval", "note", "is_not_applicable"]
     ]
     rows.sort(key=lambda x: x["changed_at"], reverse=True)
     return rows
@@ -1076,6 +1076,8 @@ def update_project(project_id):
 
         old_planned_date = existing_stage.get("planned_date")
         old_actual_date = existing_stage.get("actual_date")
+        old_note = existing_stage.get("note", "")
+        old_is_not_applicable = existing_stage.get("is_not_applicable", False)
 
         changed_by_planned = request.form.get(f"changed_by_planned_{key}", "").strip()
         change_reason_planned = request.form.get(f"change_reason_planned_{key}", "").strip()
@@ -1130,8 +1132,32 @@ def update_project(project_id):
                     changed_by=changed_by_actual,
                     change_reason=change_reason_actual,
                 )
+        if old_note != note:
+            add_stage_change_history(
+                project_id=project_id,
+                stage_order=key,
+                field_name="note",
+                field_label="비고",
+                old_value=old_note,
+                new_value=note,
+                changed_by="SYSTEM",
+                change_reason="최초 비고 입력" if not old_note and note else "비고 변경",
+               )
 
+        if old_is_not_applicable != is_not_applicable:
+            add_stage_change_history(
+                project_id=project_id,
+                stage_order=key,
+                field_name="is_not_applicable",
+                field_label="해당없음",
+                old_value="해당없음" if old_is_not_applicable else "해당",
+                new_value="해당없음" if is_not_applicable else "해당",
+                changed_by="SYSTEM",
+                change_reason="해당없음 체크" if is_not_applicable else "해당없음 해제",
+               )
             approval_date = None
+
+       
 
         updated_list.append(
             {
