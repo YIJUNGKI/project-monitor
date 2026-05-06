@@ -1363,10 +1363,22 @@ def approve_stage(project_id: int, stage_order: str):
         flash("실적일을 먼저 저장한 뒤 승인하세요.")
         return redirect(url_for("project_detail", project_id=project_id))
 
-    if target.get("actual_date") and not target.get("approval_date"):
-        target["approval_date"] = now_kst().strftime("%Y-%m-%d")
-        save_project_stages(project_id, stages)
-        flash("승인 처리되었습니다.")
+    iif target.get("actual_date") and not target.get("approval_date"):
+    target["approval_date"] = now_kst().strftime("%Y-%m-%d")
+
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=stage_order,
+        field_name="approval",
+        field_label="승인",
+        old_value="미승인",
+        new_value=target["approval_date"],
+        changed_by="품질팀",
+        change_reason="단계 승인",
+    )
+
+    save_project_stages(project_id, stages)
+    flash("승인 처리되었습니다."))
 
     recompute_project(project_id)
     return redirect(url_for("project_detail", project_id=project_id))
@@ -1388,8 +1400,21 @@ def cancel_approve_stage(project_id: int, stage_order: str):
         abort(404)
 
     if target.get("approval_date"):
-        target["approval_date"] = None
-        save_project_stages(project_id, stages)
+    old_approval_date = target.get("approval_date")
+    target["approval_date"] = None
+
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=stage_order,
+        field_name="approval",
+        field_label="승인취소",
+        old_value=old_approval_date,
+        new_value="미승인",
+        changed_by="품질팀",
+        change_reason="승인 취소",
+    )
+
+    save_project_stages(project_id, stages)
 
     recompute_project(project_id)
     flash("승인이 취소되었습니다.")
