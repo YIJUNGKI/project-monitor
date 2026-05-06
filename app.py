@@ -1084,63 +1084,62 @@ def update_project(project_id):
         changed_by_actual = request.form.get(f"changed_by_actual_{key}", "").strip()
         change_reason_actual = request.form.get(f"change_reason_actual_{key}", "").strip()
 
-        if old_planned_date != planned_date:
+                if old_planned_date != planned_date:
 
-    # 최초 입력
-    if not old_planned_date and planned_date:
-        add_stage_change_history(
-            project_id=project_id,
-            stage_order=key,
-            field_name="planned_date",
-            field_label="계획일",
-            old_value="",
-            new_value=planned_date,
-            changed_by="SYSTEM",
-            change_reason="최초 계획일 입력",
-        )
+            # 최초 입력
+            if not old_planned_date and planned_date:
+                add_stage_change_history(
+                    project_id=project_id,
+                    stage_order=key,
+                    field_name="planned_date",
+                    field_label="계획일",
+                    old_value="",
+                    new_value=planned_date,
+                    changed_by="SYSTEM",
+                    change_reason="최초 계획일 입력",
+                )
 
-    # 수정
-    elif changed_by_planned and change_reason_planned:
-        add_stage_change_history(
-            project_id=project_id,
-            stage_order=key,
-            field_name="planned_date",
-            field_label="계획일",
-            old_value=old_planned_date,
-            new_value=planned_date,
-            changed_by=changed_by_planned,
-            change_reason=change_reason_planned,
-        )
-
-        if old_actual_date != actual_date:
-
-    # 최초 입력
-    if not old_actual_date and actual_date:
-        add_stage_change_history(
-            project_id=project_id,
-            stage_order=key,
-            field_name="actual_date",
-            field_label="실적일",
-            old_value="",
-            new_value=actual_date,
-            changed_by="SYSTEM",
-            change_reason="최초 실적일 입력",
-        )
-
-    # 수정
-    elif changed_by_actual and change_reason_actual:
-        add_stage_change_history(
-            project_id=project_id,
-            stage_order=key,
-            field_name="actual_date",
-            field_label="실적일",
-            old_value=old_actual_date,
-            new_value=actual_date,
-            changed_by=changed_by_actual,
-            change_reason=change_reason_actual,
-        )
+            # 수정
+            elif changed_by_planned and change_reason_planned:
+                add_stage_change_history(
+                    project_id=project_id,
+                    stage_order=key,
+                    field_name="planned_date",
+                    field_label="계획일",
+                    old_value=old_planned_date,
+                    new_value=planned_date,
+                    changed_by=changed_by_planned,
+                    change_reason=change_reason_planned,
+                )
 
         if old_actual_date != actual_date:
+
+            # 최초 입력
+            if not old_actual_date and actual_date:
+                add_stage_change_history(
+                    project_id=project_id,
+                    stage_order=key,
+                    field_name="actual_date",
+                    field_label="실적일",
+                    old_value="",
+                    new_value=actual_date,
+                    changed_by="SYSTEM",
+                    change_reason="최초 실적일 입력",
+                )
+
+            # 수정
+            elif changed_by_actual and change_reason_actual:
+                add_stage_change_history(
+                    project_id=project_id,
+                    stage_order=key,
+                    field_name="actual_date",
+                    field_label="실적일",
+                    old_value=old_actual_date,
+                    new_value=actual_date,
+                    changed_by=changed_by_actual,
+                    change_reason=change_reason_actual,
+                )
+
             approval_date = None
 
         updated_list.append(
