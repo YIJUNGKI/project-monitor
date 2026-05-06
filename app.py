@@ -251,7 +251,7 @@ def get_stage_history_rows(project_id: int, stage_order: str):
     rows = [
         row for row in history_rows
         if str(row.get("stage_order")) == str(stage_order)
-        and row.get("field_name") in ["planned_date", "actual_date"]
+        and row.get("field_name") in ["planned_date", "actual_date", "approval"]
     ]
     rows.sort(key=lambda x: x["changed_at"], reverse=True)
     return rows
