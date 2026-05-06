@@ -503,6 +503,22 @@ def build_stage_mini_view(stages):
 
 def enrich_project(project):
     stages = merge_stages(project["id"])
+    
+    today = datetime.today().date()
+
+    for stage in stages:
+        deadline_date = get_stage_deadline(
+            stage["stage_order"],
+            stage.get("planned_date"),
+        )
+        deadline = parse_date(deadline_date)
+
+        stage["delay_deadline"] = deadline_date
+        stage["delay_days"] = 0
+
+        if stage["status"] == "지연" and deadline:
+            stage["delay_days"] = max((today - deadline).days, 0)
+
     completed_count = sum(1 for stage in stages if stage["status"] in ["완료", "해당없음"])
     progress_text = f"{completed_count}/{ACTUAL_STAGE_COUNT}"
     progress_percent = int((completed_count / ACTUAL_STAGE_COUNT) * 100)

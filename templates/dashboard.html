@@ -204,12 +204,8 @@
   {% if delayed_stage %}
     <em>
       {{ delayed_stage.stage_order }} {{ delayed_stage.stage_name }}
-      / 지연기준일
-        {% if delayed_stage.stage_order == '3' %}
-          {{ delayed_stage.planned_date }} +3일 초과
-        {% else %}
-          {{ delayed_stage.planned_date or '-' }} 초과
-        {% endif %}
+      / 지연기준일 {{ delayed_stage.delay_deadline or '-' }}
+      / +{{ delayed_stage.delay_days }}일 지연
     </em>
   {% else %}
     <em>{{ project.current_stage_display }} / 지연 발생</em>
