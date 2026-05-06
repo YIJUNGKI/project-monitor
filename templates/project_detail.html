@@ -544,11 +544,17 @@
     </div>
 
     <div id="history-list-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
-      <div style="background:#fff; width:720px; max-width:94%; border-radius:12px; padding:20px; max-height:80vh; overflow:auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <h3 style="margin:0;">변경 이력</h3>
-          <button type="button" class="btn btn-secondary btn-sm" id="history-close-btn">닫기</button>
-        </div>
+  <div style="background:#fff; width:720px; max-width:94%; border-radius:12px; padding:20px; max-height:80vh; overflow:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0;">변경 이력</h3>
+      <button type="button" class="btn btn-secondary btn-sm" id="history-close-btn">닫기</button>
+    </div>
+
+    <div id="history-list-body">
+      <p class="muted">이력을 불러오는 중입니다.</p>
+    </div>
+  </div>
+</div>
 
 <div id="project-history-modal"
      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
@@ -563,11 +569,6 @@
     </div>
   </div>
 </div>
-
-        <div id="history-list-body">
-          <p class="muted">이력을 불러오는 중입니다.</p>
-        </div>
-      </div>
     </div>
   </form>
 </section>
