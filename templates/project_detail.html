@@ -830,11 +830,17 @@ document.addEventListener('DOMContentLoaded', function () {
       const oldValue = this.dataset.oldValue || '';
       const newValue = this.value || '';
 
-      if (oldValue === newValue) {
-        return;
-      }
+    if (oldValue === newValue) {
+          return;
+    }
 
-      openChangeModal(this);
+      /* 최초 입력은 자동이력 처리 */
+    if (!oldValue && newValue) {
+          this.dataset.oldValue = newValue;
+          return;
+    }
+
+openChangeModal(this);
     });
   });
 
