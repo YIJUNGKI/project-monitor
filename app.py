@@ -786,50 +786,7 @@ def kpi():
         reverse=True
     )[:30]
 
-    heatmap_rows = []
-
-    for project in projects:
-        row = {
-        "code": project.get("code"),
-        "name": project.get("name"),
-        "current_stage": project.get("current_stage_display"),
-        "cells": [],
-    }
-
-    for stage in project["stages"]:
-        status = stage.get("status")
-
-        color_class = "heat-empty"
-
-        if project.get("status") == "보류":
-            color_class = "heat-hold"
-        elif status == "완료":
-            color_class = "heat-done"
-        elif status == "진행":
-            color_class = "heat-progress"
-        elif status == "승인대기":
-            color_class = "heat-approval"
-        elif status == "지연":
-            color_class = "heat-delay"
-        elif status == "누락":
-            color_class = "heat-missing"
-        elif status == "해당없음":
-            color_class = "heat-na"
-
-        tooltip = (
-            f'{stage.get("stage_order")} {stage.get("stage_name")}\n'
-            f'상태: {status}\n'
-            f'계획일: {stage.get("planned_date") or "-"}\n'
-            f'실적일: {stage.get("actual_date") or "-"}'
-        )
-
-        row["cells"].append({
-            "class": color_class,
-            "tooltip": tooltip,
-        })
-
-    heatmap_rows.append(row)
-    stage_stay_rows = []
+        stage_stay_rows = []
     for stage_name, days in stage_stay_days.items():
         if days:
             avg_days = round(sum(days) / len(days), 1)
@@ -925,7 +882,6 @@ def kpi():
         stage_delay_rate_rows=stage_delay_rate_rows,
         plan_change_rate=plan_change_rate,
         recent_history=recent_history,
-        heatmap_rows=heatmap_rows,
     )
 
 @app.route("/projects")
