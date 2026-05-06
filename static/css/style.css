@@ -2143,3 +2143,26 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
 .detail-row-missing .badge {
   box-shadow: 0 0 0 1px rgba(202,138,4,0.15);
 }
+
+/* ===== 상세화면 저장 버튼 고정 ===== */
+
+.sticky-save-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  margin-top: 20px;
+  padding: 12px 0;
+  display: flex;
+  justify-content: flex-end;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0),
+    #ffffff 35%
+  );
+}
+
+.sticky-save-bar .btn-primary {
+  min-width: 96px;
+  height: 42px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+}
