@@ -652,7 +652,10 @@ def dashboard():
         "delayed": sum(1 for p in projects if p.get("is_delayed") and p.get("status") != "보류"),
     }
 
-    delayed_projects = [p for p in projects if p.get("is_delayed")]
+    delayed_projects = [
+        p for p in projects
+        if p.get("is_delayed") and p.get("status") != "보류"
+    ]
 
     return render_template(
         "dashboard.html",

@@ -195,7 +195,7 @@
     </div>
 
     <div class="delay-list">
-      {% for project in delayed_projects %}
+      {% for project in delayed_projects if not project.get('is_hold') and project.status != '보류' %}
       <a href="/projects/{{ project.id }}" class="delay-item delay-item-danger">
         <strong>{{ project.code }}</strong>
         <span>{{ project.name }}</span>
