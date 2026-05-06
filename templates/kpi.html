@@ -35,80 +35,96 @@
 </section>
 
 <section class="dashboard-bottom dashboard-bottom-grid">
-  <section class="card" style="margin-top:18px;">
-  <div style="display:flex; justify-content:space-between; align-items:center;">
-    <div>
-      <h2 style="margin-bottom:6px;">최근 변경이력</h2>
-      <p class="muted">최근 30건의 변경내역을 확인할 수 있습니다.</p>
+  <div class="card">
+    <div class="section-title">
+      <h2>단계 체류일</h2>
+      <p class="section-subtext">계획일 대비 실적일까지의 평균 체류일입니다.</p>
     </div>
 
-    <button type="button"
-            class="btn btn-secondary btn-sm"
-            id="kpi-history-open-btn">
-      펼쳐보기
-    </button>
-  </div>
-</section>
-
-    {% if stage_delay_rows %}
+    {% if stage_stay_rows %}
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
             <th>단계</th>
-            <th>지연건수</th>
+            <th>평균 체류일</th>
+            <th>완료건수</th>
           </tr>
         </thead>
         <tbody>
-          {% for name, count in stage_delay_rows %}
+          {% for row in stage_stay_rows %}
           <tr>
-            <td>{{ name }}</td>
-            <td><span class="badge badge-지연">{{ count }}건</span></td>
+            <td>{{ row.stage }}</td>
+            <td><strong>{{ row.avg_days }}일</strong></td>
+            <td>{{ row.count }}건</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-      <div class="empty-panel">이번주 신규 지연 단계가 없습니다.</div>
+      <div class="empty-panel">체류일 계산 데이터가 없습니다.</div>
     {% endif %}
   </div>
 
   <div class="card">
     <div class="section-title">
-      <h2>최근 변경이력</h2>
+      <h2>단계별 지연율</h2>
+      <p class="section-subtext">현재 지연 상태인 단계의 비율입니다.</p>
     </div>
 
-    {% if recent_history %}
+    {% if stage_delay_rate_rows %}
     <div class="table-wrap">
-      <table class="project-history-table">
+      <table>
         <thead>
           <tr>
-            <th>변경일시</th>
-            <th>프로젝트</th>
             <th>단계</th>
-            <th>항목</th>
-            <th>변경자</th>
-            <th>사유</th>
+            <th>지연율</th>
+            <th>지연/전체</th>
           </tr>
         </thead>
         <tbody>
-          {% for row in recent_history %}
+          {% for row in stage_delay_rate_rows %}
           <tr>
-            <td>{{ row.changed_at or '-' }}</td>
-            <td>{{ row.project_code }} / {{ row.project_name }}</td>
-            <td>{{ row.stage_order or '-' }}</td>
-            <td>{{ row.field_label or '-' }}</td>
-            <td>{{ row.changed_by or '-' }}</td>
-            <td>{{ row.change_reason or '-' }}</td>
+            <td>{{ row.stage }}</td>
+            <td><span class="badge badge-지연">{{ row.rate }}%</span></td>
+            <td>{{ row.delayed }} / {{ row.total }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-      <div class="empty-panel">변경이력이 없습니다.</div>
+      <div class="empty-panel">현재 지연 단계가 없습니다.</div>
     {% endif %}
+  </div>
+</section>
+
+<section class="dashboard-bottom dashboard-bottom-grid">
+  <div class="card">
+    <div class="section-title">
+      <h2>계획변경률</h2>
+      <p class="section-subtext">전체 프로젝트 중 계획일 변경 이력이 있는 프로젝트 비율입니다.</p>
+    </div>
+
+    <div class="kpi-big-number">
+      {{ plan_change_rate }}%
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:14px;">
+      <div>
+        <h2 style="margin:0 0 6px;">최근 변경이력</h2>
+        <p class="muted">최근 30건의 변경내역을 확인할 수 있습니다.</p>
+      </div>
+
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              id="kpi-history-open-btn">
+        펼쳐보기
+      </button>
+    </div>
   </div>
 </section>
 
@@ -127,6 +143,7 @@
       </button>
     </div>
 
+    {% if recent_history %}
     <div class="table-wrap">
       <table class="project-history-table">
         <thead>
@@ -154,13 +171,15 @@
         </tbody>
       </table>
     </div>
+    {% else %}
+      <div class="empty-panel">변경이력이 없습니다.</div>
+    {% endif %}
 
   </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
   const openBtn = document.getElementById('kpi-history-open-btn');
   const closeBtn = document.getElementById('kpi-history-close-btn');
   const modal = document.getElementById('kpi-history-modal');
@@ -180,7 +199,6 @@ document.addEventListener('DOMContentLoaded', function () {
       modal.style.display = 'none';
     }
   });
-
 });
 </script>
 

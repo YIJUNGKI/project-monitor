@@ -713,17 +713,30 @@ def kpi():
 
     new_delay_count = 0
     stage_delay_count = {}
+    stage_total_count = {}
+    stage_stay_days = {}
 
     for project in projects:
         for stage in project["stages"]:
+            stage_name = f'{stage["stage_order"]} {stage["stage_name"]}'
+            stage_total_count[stage_name] = stage_total_count.get(stage_name, 0) + 1
+
+            if stage.get("status") == "지연":
+                stage_delay_count[stage_name] = stage_delay_count.get(stage_name, 0) + 1
+
             if stage.get("status") == "지연" and stage.get("delay_deadline"):
                 deadline = parse_date(stage.get("delay_deadline"))
                 if deadline:
                     delay_start = deadline + timedelta(days=1)
                     if week_start <= delay_start < week_end:
                         new_delay_count += 1
-                        name = f'{stage["stage_order"]} {stage["stage_name"]}'
-                        stage_delay_count[name] = stage_delay_count.get(name, 0) + 1
+
+            planned = parse_date(stage.get("planned_date"))
+            actual = parse_date(stage.get("actual_date"))
+
+            if planned and actual:
+                stay_days = max((actual - planned).days, 0)
+                stage_stay_days.setdefault(stage_name, []).append(stay_days)
 
         for row in get_project_history(project["id"]):
             item = dict(row)
@@ -746,7 +759,11 @@ def kpi():
         if is_this_week_date(row.get("changed_at"))
     ]
 
-    planned_change_count = sum(1 for row in weekly_history if row.get("field_name") == "planned_date")
+    planned_change_count = sum(
+        1 for row in weekly_history
+        if row.get("field_name") == "planned_date"
+    )
+
     actual_input_count = sum(
         1 for row in weekly_history
         if row.get("field_name") == "actual_date" and row.get("new_value")
@@ -769,11 +786,42 @@ def kpi():
         reverse=True
     )[:30]
 
-    stage_delay_rows = sorted(
-        stage_delay_count.items(),
-        key=lambda x: x[1],
-        reverse=True
+    stage_stay_rows = []
+    for stage_name, days in stage_stay_days.items():
+        if days:
+            avg_days = round(sum(days) / len(days), 1)
+            stage_stay_rows.append({
+                "stage": stage_name,
+                "avg_days": avg_days,
+                "count": len(days),
+            })
+
+    stage_stay_rows = sorted(stage_stay_rows, key=lambda x: x["avg_days"], reverse=True)
+
+    stage_delay_rate_rows = []
+    for stage_name, total in stage_total_count.items():
+        delayed = stage_delay_count.get(stage_name, 0)
+        rate = round((delayed / total) * 100, 1) if total else 0
+        if delayed > 0:
+            stage_delay_rate_rows.append({
+                "stage": stage_name,
+                "delayed": delayed,
+                "total": total,
+                "rate": rate,
+            })
+
+    stage_delay_rate_rows = sorted(stage_delay_rate_rows, key=lambda x: x["rate"], reverse=True)
+
+    project_ids_with_plan_change = set(
+        row.get("project_code")
+        for row in all_history
+        if row.get("field_name") == "planned_date"
     )
+
+    plan_change_rate = round(
+        (len(project_ids_with_plan_change) / len(projects)) * 100,
+        1
+    ) if projects else 0
 
     return render_template(
         "kpi.html",
@@ -786,7 +834,9 @@ def kpi():
             "approval": approval_count,
             "hold_request": hold_request_count,
         },
-        stage_delay_rows=stage_delay_rows,
+        stage_stay_rows=stage_stay_rows,
+        stage_delay_rate_rows=stage_delay_rate_rows,
+        plan_change_rate=plan_change_rate,
         recent_history=recent_history,
     )
 
