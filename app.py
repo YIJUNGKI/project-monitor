@@ -8,6 +8,8 @@ from upstash_redis import Redis
 
 
 app = Flask(__name__)
+application = app
+
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 MASTER_PASSWORD = os.environ.get("MASTER_PASSWORD", "260407")
 
