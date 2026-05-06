@@ -2166,3 +2166,16 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   height: 42px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
 }
+
+.delay-stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delay-stage-list em {
+  color: #dc2626;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+}

@@ -200,16 +200,21 @@
   <strong>{{ project.code }}</strong>
   <span>{{ project.name }}</span>
 
-  {% set delayed_stage = project.stages | selectattr("status", "equalto", "지연") | list | first %}
-  {% if delayed_stage %}
-    <em>
-      {{ delayed_stage.stage_order }} {{ delayed_stage.stage_name }}
-      / 지연기준일 {{ delayed_stage.delay_deadline or '-' }}
-      / +{{ delayed_stage.delay_days }}일 지연
-    </em>
-  {% else %}
-    <em>{{ project.current_stage_display }} / 지연 발생</em>
-  {% endif %}
+  {% set delayed_stages = project.stages | selectattr("status", "equalto", "지연") | list %}
+
+{% if delayed_stages %}
+  <div class="delay-stage-list">
+    {% for stage in delayed_stages %}
+      <em>
+        {{ stage.stage_order }} {{ stage.stage_name }}
+        / 기준일 {{ stage.delay_deadline or '-' }}
+        / +{{ stage.delay_days }}일
+      </em>
+    {% endfor %}
+  </div>
+{% else %}
+  <em>{{ project.current_stage_display }} / 지연 발생</em>
+{% endif %}
 </a>
       {% else %}
       <div class="empty-panel">현재 지연 프로젝트가 없습니다.</div>
