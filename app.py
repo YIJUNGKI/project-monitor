@@ -696,6 +696,100 @@ def dashboard():
         approval_pending_projects=approval_pending_projects,
     )
 
+@app.route("/kpi")
+def kpi():
+    today = now_kst().date()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=7)
+
+    projects = [
+        enrich_project(project)
+        for project in load_projects()
+        if not project.get("is_deleted", False)
+    ]
+
+    all_history = []
+    hold_history = []
+
+    new_delay_count = 0
+    stage_delay_count = {}
+
+    for project in projects:
+        for stage in project["stages"]:
+            if stage.get("status") == "지연" and stage.get("delay_deadline"):
+                deadline = parse_date(stage.get("delay_deadline"))
+                if deadline:
+                    delay_start = deadline + timedelta(days=1)
+                    if week_start <= delay_start < week_end:
+                        new_delay_count += 1
+                        name = f'{stage["stage_order"]} {stage["stage_name"]}'
+                        stage_delay_count[name] = stage_delay_count.get(name, 0) + 1
+
+        for row in get_project_history(project["id"]):
+            item = dict(row)
+            item["project_code"] = project.get("code")
+            item["project_name"] = project.get("name")
+            all_history.append(item)
+
+        for row in project.get("hold_history", []):
+            item = dict(row)
+            item["project_code"] = project.get("code")
+            item["project_name"] = project.get("name")
+            hold_history.append(item)
+
+    def is_this_week_date(date_text):
+        d = parse_date(str(date_text)[:10])
+        return d and week_start <= d < week_end
+
+    weekly_history = [
+        row for row in all_history
+        if is_this_week_date(row.get("changed_at"))
+    ]
+
+    planned_change_count = sum(1 for row in weekly_history if row.get("field_name") == "planned_date")
+    actual_input_count = sum(
+        1 for row in weekly_history
+        if row.get("field_name") == "actual_date" and row.get("new_value")
+    )
+
+    approval_count = 0
+    for project in projects:
+        for stage in project["stages"]:
+            if is_this_week_date(stage.get("approval_date")):
+                approval_count += 1
+
+    hold_request_count = sum(
+        1 for row in hold_history
+        if row.get("type") == "보류신청" and is_this_week_date(row.get("at"))
+    )
+
+    recent_history = sorted(
+        all_history,
+        key=lambda x: x.get("changed_at", ""),
+        reverse=True
+    )[:30]
+
+    stage_delay_rows = sorted(
+        stage_delay_count.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    return render_template(
+        "kpi.html",
+        week_start=week_start,
+        week_end=week_end - timedelta(days=1),
+        summary={
+            "new_delay": new_delay_count,
+            "planned_change": planned_change_count,
+            "actual_input": actual_input_count,
+            "approval": approval_count,
+            "hold_request": hold_request_count,
+        },
+        stage_delay_rows=stage_delay_rows,
+        recent_history=recent_history,
+    )
+
 @app.route("/projects")
 def projects():
     # recompute_all_projects()

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}KPI 운영현황{% endblock %}
+{% block content %}
+
+<section class="page-header">
+  <h1>KPI / 운영현황</h1>
+  <p>{{ week_start }} ~ {{ week_end }} 기준 주간 운영 지표입니다.</p>
+</section>
+
+<section class="card-grid kpi-card-grid">
+  <div class="card metric-card">
+    <span>이번주 신규 지연</span>
+    <strong>{{ summary.new_delay }}</strong>
+  </div>
+
+  <div class="card metric-card">
+    <span>계획일 변경</span>
+    <strong>{{ summary.planned_change }}</strong>
+  </div>
+
+  <div class="card metric-card">
+    <span>실적일 입력</span>
+    <strong>{{ summary.actual_input }}</strong>
+  </div>
+
+  <div class="card metric-card">
+    <span>승인 완료</span>
+    <strong>{{ summary.approval }}</strong>
+  </div>
+
+  <div class="card metric-card">
+    <span>보류 신청</span>
+    <strong>{{ summary.hold_request }}</strong>
+  </div>
+</section>
+
+<section class="dashboard-bottom dashboard-bottom-grid">
+  <div class="card">
+    <div class="section-title">
+      <h2>단계별 신규 지연</h2>
+    </div>
+
+    {% if stage_delay_rows %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>단계</th>
+            <th>지연건수</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for name, count in stage_delay_rows %}
+          <tr>
+            <td>{{ name }}</td>
+            <td><span class="badge badge-지연">{{ count }}건</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-panel">이번주 신규 지연 단계가 없습니다.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      <h2>최근 변경이력</h2>
+    </div>
+
+    {% if recent_history %}
+    <div class="table-wrap">
+      <table class="project-history-table">
+        <thead>
+          <tr>
+            <th>변경일시</th>
+            <th>프로젝트</th>
+            <th>단계</th>
+            <th>항목</th>
+            <th>변경자</th>
+            <th>사유</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in recent_history %}
+          <tr>
+            <td>{{ row.changed_at or '-' }}</td>
+            <td>{{ row.project_code }} / {{ row.project_name }}</td>
+            <td>{{ row.stage_order or '-' }}</td>
+            <td>{{ row.field_label or '-' }}</td>
+            <td>{{ row.changed_by or '-' }}</td>
+            <td>{{ row.change_reason or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-panel">변경이력이 없습니다.</div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

@@ -2208,3 +2208,21 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
 .project-history-table td:nth-child(7) {
   min-width: 220px;
 }
+
+/* ===== KPI page ===== */
+
+.kpi-card-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .kpi-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .kpi-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
