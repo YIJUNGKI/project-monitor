@@ -2233,3 +2233,19 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   color: #111827;
   margin-top: 20px;
 }
+
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: help;
+  vertical-align: middle;
+}
