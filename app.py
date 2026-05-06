@@ -1420,6 +1420,19 @@ def cancel_approve_stage(project_id: int, stage_order: str):
     flash("승인이 취소되었습니다.")
     return redirect(url_for("project_detail", project_id=project_id))
 
+@app.route("/projects/<int:project_id>/history/<stage_order>")
+def project_stage_history(project_id: int, stage_order: str):
+    project = find_project(project_id)
+    if not project:
+        abort(404)
+
+    rows = get_stage_history_rows(project_id, stage_order)
+
+    return jsonify({
+        "ok": True,
+        "items": rows
+    })
+
 @app.route("/projects/<int:project_id>/history")
 def project_all_history(project_id: int):
     project = find_project(project_id)
