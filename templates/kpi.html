@@ -35,10 +35,20 @@
 </section>
 
 <section class="dashboard-bottom dashboard-bottom-grid">
-  <div class="card">
-    <div class="section-title">
-      <h2>단계별 신규 지연</h2>
+  <section class="card" style="margin-top:18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <h2 style="margin-bottom:6px;">최근 변경이력</h2>
+      <p class="muted">최근 30건의 변경내역을 확인할 수 있습니다.</p>
     </div>
+
+    <button type="button"
+            class="btn btn-secondary btn-sm"
+            id="kpi-history-open-btn">
+      펼쳐보기
+    </button>
+  </div>
+</section>
 
     {% if stage_delay_rows %}
     <div class="table-wrap">
@@ -101,5 +111,77 @@
     {% endif %}
   </div>
 </section>
+
+<div id="kpi-history-modal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+
+  <div style="background:#fff; width:1200px; max-width:96%; border-radius:12px; padding:20px; max-height:85vh; overflow:auto;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0;">최근 변경이력</h3>
+
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              id="kpi-history-close-btn">
+        닫기
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="project-history-table">
+        <thead>
+          <tr>
+            <th>변경일시</th>
+            <th>프로젝트</th>
+            <th>단계</th>
+            <th>항목</th>
+            <th>변경자</th>
+            <th>사유</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for row in recent_history %}
+          <tr>
+            <td>{{ row.changed_at or '-' }}</td>
+            <td>{{ row.project_code }} / {{ row.project_name }}</td>
+            <td>{{ row.stage_order or '-' }}</td>
+            <td>{{ row.field_label or '-' }}</td>
+            <td>{{ row.changed_by or '-' }}</td>
+            <td>{{ row.change_reason or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  const openBtn = document.getElementById('kpi-history-open-btn');
+  const closeBtn = document.getElementById('kpi-history-close-btn');
+  const modal = document.getElementById('kpi-history-modal');
+
+  if (!openBtn || !closeBtn || !modal) return;
+
+  openBtn.addEventListener('click', function () {
+    modal.style.display = 'flex';
+  });
+
+  closeBtn.addEventListener('click', function () {
+    modal.style.display = 'none';
+  });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+
+});
+</script>
 
 {% endblock %}
