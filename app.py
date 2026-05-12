@@ -1181,6 +1181,9 @@ def update_project(project_id):
         )
     save_project_stages(project_id, updated_list)
 
+        old_team_data = get_project_team(project_id)
+    old_team_rows = old_team_data.get("team_rows", [])
+
     pm_list = request.form.getlist("team_pm[]")
     design_list = request.form.getlist("team_design[]")
     machine_list = request.form.getlist("team_machine[]")
@@ -1194,6 +1197,39 @@ def update_project(project_id):
         control_list,
         sales_list,
     )
+
+    def format_team_rows(rows):
+        formatted_rows = []
+
+        for index, row in enumerate(rows, start=1):
+            values = [
+                f"PM:{row.get('pm', '') or '-'}",
+                f"설계:{row.get('design', '') or '-'}",
+                f"기계:{row.get('machine', '') or '-'}",
+                f"제어:{row.get('control', '') or '-'}",
+                f"영업:{row.get('sales', '') or '-'}",
+            ]
+            formatted_rows.append(f"{index}행 " + " / ".join(values))
+
+        return " | ".join(formatted_rows) if formatted_rows else "-"
+
+    if old_team_rows != team_rows:
+        change_batch_by = request.form.get("change_batch_by", "").strip()
+        change_batch_reason = request.form.get("change_batch_reason", "").strip()
+
+        if not change_batch_by or not change_batch_reason:
+            flash("팀구성이 변경되었습니다. 변경자와 변경사유를 입력해야 저장할 수 있습니다.")
+            return redirect(url_for("project_detail", project_id=project_id))
+
+        add_project_change_history(
+            project_id=project_id,
+            field_name="team_members",
+            field_label="팀구성",
+            old_value=format_team_rows(old_team_rows),
+            new_value=format_team_rows(team_rows),
+            changed_by=change_batch_by,
+            change_reason=change_batch_reason,
+        )
 
     save_project_teams(
         project_id,
