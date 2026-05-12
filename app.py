@@ -1179,9 +1179,9 @@ def update_project(project_id):
                 "is_not_applicable": is_not_applicable,
             }
         )
-    save_project_stages(project_id, updated_list)
+        save_project_stages(project_id, updated_list)
 
-        old_team_data = get_project_team(project_id)
+    old_team_data = get_project_team(project_id)
     old_team_rows = old_team_data.get("team_rows", [])
 
     pm_list = request.form.getlist("team_pm[]")
