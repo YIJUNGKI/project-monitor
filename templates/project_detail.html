@@ -902,4 +902,165 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const openBtn = document.getElementById('project-history-view-btn');
+  const modal = document.getElementById('project-history-modal');
+  const body = document.getElementById('project-history-body');
+  const filterButtons = document.querySelectorAll('.history-filter-btn');
+
+  if (!openBtn || !modal || !body || !filterButtons.length) {
+    return;
+  }
+
+  let allHistoryItemsForFilter = [];
+  let currentHistoryFilter = 'all';
+
+  function isHoldHistory(item) {
+    const fieldName = item.field_name || '';
+    const fieldLabel = item.field_label || '';
+
+    return (
+      fieldName.indexOf('hold') !== -1 ||
+      fieldLabel.indexOf('보류') !== -1
+    );
+  }
+
+  function isApprovalHistory(item) {
+    const fieldName = item.field_name || '';
+    const fieldLabel = item.field_label || '';
+
+    return (
+      fieldName === 'approval' ||
+      fieldLabel.indexOf('승인') !== -1
+    );
+  }
+
+  function getFilteredHistoryItems() {
+    if (currentHistoryFilter === 'all') {
+      return allHistoryItemsForFilter;
+    }
+
+    if (currentHistoryFilter === 'hold') {
+      return allHistoryItemsForFilter.filter(isHoldHistory);
+    }
+
+    if (currentHistoryFilter === 'approval') {
+      return allHistoryItemsForFilter.filter(isApprovalHistory);
+    }
+
+    return allHistoryItemsForFilter.filter(function (item) {
+      return item.field_name === currentHistoryFilter;
+    });
+  }
+
+  function setActiveHistoryFilterButton() {
+    filterButtons.forEach(function (btn) {
+      if (btn.dataset.filter === currentHistoryFilter) {
+        btn.style.fontWeight = '700';
+        btn.style.borderColor = '#111827';
+        btn.style.background = '#f1f5f9';
+      } else {
+        btn.style.fontWeight = '';
+        btn.style.borderColor = '';
+        btn.style.background = '';
+      }
+    });
+  }
+
+  function renderFilteredHistory() {
+    const items = getFilteredHistoryItems();
+
+    if (!items.length) {
+      body.innerHTML = '<p class="muted">해당 조건의 변경이력이 없습니다.</p>';
+      return;
+    }
+
+    let html = `
+      <div class="table-wrap">
+        <table class="project-history-table">
+          <thead>
+            <tr>
+              <th>변경일시</th>
+              <th>단계</th>
+              <th>항목</th>
+              <th>변경전</th>
+              <th>변경후</th>
+              <th>변경자</th>
+              <th>사유</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    items.forEach(function (item) {
+      html += `
+        <tr>
+          <td>${item.changed_at || '-'}</td>
+          <td>${item.stage_order || '-'}</td>
+          <td>${item.field_label || '-'}</td>
+          <td>${item.old_value || '-'}</td>
+          <td>${item.new_value || '-'}</td>
+          <td>${item.changed_by || '-'}</td>
+          <td>${item.change_reason || '-'}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    body.innerHTML = html;
+  }
+
+  function loadProjectHistoryForFilter() {
+    const projectId = openBtn.dataset.projectId;
+
+    fetch(`/projects/${projectId}/history`)
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data.ok || !data.items) {
+          body.innerHTML = '<p>전체 변경이력 조회에 실패했습니다.</p>';
+          return;
+        }
+
+        allHistoryItemsForFilter = data.items || [];
+        renderFilteredHistory();
+      })
+      .catch(function () {
+        body.innerHTML = '<p>전체 변경이력 조회 중 오류가 발생했습니다.</p>';
+      });
+  }
+
+  filterButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentHistoryFilter = this.dataset.filter || 'all';
+      setActiveHistoryFilterButton();
+
+      if (!allHistoryItemsForFilter.length) {
+        body.innerHTML = '<p class="muted">이력을 불러오는 중입니다.</p>';
+        loadProjectHistoryForFilter();
+        return;
+      }
+
+      renderFilteredHistory();
+    });
+  });
+
+  openBtn.addEventListener('click', function () {
+    currentHistoryFilter = 'all';
+    allHistoryItemsForFilter = [];
+    setActiveHistoryFilterButton();
+
+    setTimeout(function () {
+      loadProjectHistoryForFilter();
+    }, 100);
+  });
+});
+</script>
 {% endblock %}
