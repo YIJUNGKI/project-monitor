@@ -763,74 +763,92 @@ document.addEventListener('DOMContentLoaded', function () {
     changeModal.style.display = 'none';
   }
 
-  document.querySelectorAll('.history-date-input').forEach(function (input) {
-    input.addEventListener('change', function () {
-      const oldValue = this.dataset.oldValue || '';
-      const newValue = this.value || '';
-
-    if (oldValue === newValue) {
-          return;
-    }
-
-      /* 최초 입력은 자동이력 처리 */
-    if (!oldValue && newValue) {
-          this.dataset.oldValue = newValue;
-          return;
-    }
-
-openChangeModal(this);
-    });
-  });
-
-  modalCancelBtn.addEventListener('click', function () {
-    closeChangeModal(true);
-  });
-
-  modalConfirmBtn.addEventListener('click', function () {
-    if (!pendingChange) return;
-
-    const changedBy = modalChangedBy.value.trim();
-    const changeReason = modalChangeReason.value.trim();
-
-    if (!changedBy) {
-      alert('변경자를 입력하세요.');
-      modalChangedBy.focus();
-      return;
-    }
-
-    if (!changeReason) {
-      alert('변경 사유를 입력하세요.');
-      modalChangeReason.focus();
-      return;
-    }
-
-    const stageOrder = pendingChange.stageOrder;
-
-    if (pendingChange.fieldName === 'planned_date') {
-      const changedByInput = document.querySelector(`input[name="changed_by_planned_${stageOrder}"]`);
-      const changeReasonInput = document.querySelector(`input[name="change_reason_planned_${stageOrder}"]`);
-
-      if (changedByInput) changedByInput.value = changedBy;
-      if (changeReasonInput) changeReasonInput.value = changeReason;
-    }
-
-    if (pendingChange.fieldName === 'actual_date') {
-      const changedByInput = document.querySelector(`input[name="changed_by_actual_${stageOrder}"]`);
-      const changeReasonInput = document.querySelector(`input[name="change_reason_actual_${stageOrder}"]`);
-
-      if (changedByInput) changedByInput.value = changedBy;
-      if (changeReasonInput) changeReasonInput.value = changeReason;
-    }
-
-    pendingChange.input.dataset.oldValue = pendingChange.newValue;
-    closeChangeModal(false);
-  });
 
     changeModal.addEventListener('click', function (e) {
     if (e.target === changeModal) {
       closeChangeModal(true);
     }
   });
+
+  const detailForm = document.querySelector('form[action="/projects/{{ project.id }}/update"]');
+
+  if (detailForm && !projectIsHold) {
+    detailForm.addEventListener('submit', function (e) {
+      const changedItems = [];
+
+      document.querySelectorAll('.history-date-input').forEach(function (input) {
+        const oldValue = input.dataset.oldValue || '';
+        const newValue = input.value || '';
+
+        if (oldValue !== newValue) {
+          const row = input.closest('tr');
+          const stageCell = row ? row.querySelector('td:first-child') : null;
+
+          changedItems.push({
+            stage: stageCell ? stageCell.textContent.trim() : '',
+            field: input.dataset.fieldLabel || '',
+            oldValue: oldValue || '공란',
+            newValue: newValue || '공란'
+          });
+        }
+      });
+
+      document.querySelectorAll('.note-edit-textarea').forEach(function (input) {
+        const oldValue = input.dataset.oldValue || '';
+        const newValue = input.value || '';
+
+        if (oldValue !== newValue) {
+          const row = input.closest('tr');
+          const stageCell = row ? row.querySelector('td:first-child') : null;
+
+          changedItems.push({
+            stage: stageCell ? stageCell.textContent.trim() : '',
+            field: '비고',
+            oldValue: oldValue || '공란',
+            newValue: newValue || '공란'
+          });
+        }
+      });
+
+      document.querySelectorAll('.na-checkbox').forEach(function (input) {
+        const oldValue = input.dataset.oldValue || 'N';
+        const newValue = input.checked ? 'Y' : 'N';
+
+        if (oldValue !== newValue) {
+          const row = input.closest('tr');
+          const stageCell = row ? row.querySelector('td:first-child') : null;
+
+          changedItems.push({
+            stage: stageCell ? stageCell.textContent.trim() : '',
+            field: '해당없음',
+            oldValue: oldValue === 'Y' ? '해당없음' : '해당',
+            newValue: newValue === 'Y' ? '해당없음' : '해당'
+          });
+        }
+      });
+
+      if (changedItems.length === 0) {
+        return;
+      }
+
+      const changedBy = window.prompt('변경자를 입력하세요.');
+      if (!changedBy || !changedBy.trim()) {
+        e.preventDefault();
+        alert('변경자를 입력해야 저장할 수 있습니다.');
+        return;
+      }
+
+      const changeReason = window.prompt('변경사유를 입력하세요.');
+      if (!changeReason || !changeReason.trim()) {
+        e.preventDefault();
+        alert('변경사유를 입력해야 저장할 수 있습니다.');
+        return;
+      }
+
+      document.getElementById('change-batch-by').value = changedBy.trim();
+      document.getElementById('change-batch-reason').value = changeReason.trim();
+    });
+  }
 
   // 여기부터 추가
   const detailForm = document.querySelector('form[action="/projects/{{ project.id }}/update"]');
