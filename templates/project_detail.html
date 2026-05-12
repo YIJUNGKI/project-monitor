@@ -1069,4 +1069,178 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const saveBtn = document.getElementById('detail-save-btn');
+  const detailForm = saveBtn ? saveBtn.closest('form') : null;
+
+  const changeModal = document.getElementById('change-history-modal');
+  const modalChangeList = document.getElementById('modal-change-list');
+  const modalChangedBy = document.getElementById('modal-changed-by');
+  const modalChangeReason = document.getElementById('modal-change-reason');
+  const modalCancelBtn = document.getElementById('modal-cancel-btn');
+  const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+
+  if (!saveBtn || !detailForm || !changeModal || !modalChangedBy || !modalChangeReason || !modalConfirmBtn) {
+    return;
+  }
+
+  let allowRealSubmit = false;
+
+  function getChangedItems() {
+    const changedItems = [];
+
+    document.querySelectorAll('.history-date-input').forEach(function (input) {
+      const oldValue = input.dataset.oldValue || '';
+      const newValue = input.value || '';
+
+      if (oldValue !== newValue) {
+        const row = input.closest('tr');
+        const stageCell = row ? row.querySelector('td:first-child') : null;
+
+        changedItems.push({
+          stage: stageCell ? stageCell.textContent.trim() : '',
+          field: input.dataset.fieldLabel || '',
+          oldValue: oldValue || '공란',
+          newValue: newValue || '공란'
+        });
+      }
+    });
+
+    document.querySelectorAll('.note-edit-textarea').forEach(function (input) {
+      const oldValue = input.dataset.oldValue || '';
+      const newValue = input.value || '';
+
+      if (oldValue !== newValue) {
+        const row = input.closest('tr');
+        const stageCell = row ? row.querySelector('td:first-child') : null;
+
+        changedItems.push({
+          stage: stageCell ? stageCell.textContent.trim() : '',
+          field: '비고',
+          oldValue: oldValue || '공란',
+          newValue: newValue || '공란'
+        });
+      }
+    });
+
+    document.querySelectorAll('.na-checkbox').forEach(function (input) {
+      const oldValue = input.dataset.oldValue || 'N';
+      const newValue = input.checked ? 'Y' : 'N';
+
+      if (oldValue !== newValue) {
+        const row = input.closest('tr');
+        const stageCell = row ? row.querySelector('td:first-child') : null;
+
+        changedItems.push({
+          stage: stageCell ? stageCell.textContent.trim() : '',
+          field: '해당없음',
+          oldValue: oldValue === 'Y' ? '해당없음' : '해당',
+          newValue: newValue === 'Y' ? '해당없음' : '해당'
+        });
+      }
+    });
+
+    document.querySelectorAll('.team-mini-table input').forEach(function (input) {
+      const oldValue = input.defaultValue || '';
+      const newValue = input.value || '';
+
+      if (oldValue !== newValue) {
+        changedItems.push({
+          stage: '프로젝트',
+          field: '팀구성',
+          oldValue: oldValue || '공란',
+          newValue: newValue || '공란'
+        });
+      }
+    });
+
+    return changedItems;
+  }
+
+  function renderChangedItems(items) {
+    if (!modalChangeList) return;
+
+    if (!items.length) {
+      modalChangeList.innerHTML =
+        '<p class="muted" style="margin:0;">변경된 항목을 자동 감지하지 못했습니다. 변경자와 변경사유를 입력하면 서버에서 실제 변경분만 이력으로 저장합니다.</p>';
+      return;
+    }
+
+    let html = '<ul style="margin:0; padding-left:18px;">';
+
+    items.forEach(function (item) {
+      html += `
+        <li style="margin-bottom:8px;">
+          <strong>${item.stage}</strong> / ${item.field}<br>
+          <span style="color:#64748b; white-space:pre-line;">${item.oldValue}</span>
+          →
+          <span style="color:#111827; white-space:pre-line;">${item.newValue}</span>
+        </li>
+      `;
+    });
+
+    html += '</ul>';
+    modalChangeList.innerHTML = html;
+  }
+
+  detailForm.addEventListener('submit', function (e) {
+    if (allowRealSubmit) {
+      return;
+    }
+
+    const submitter = e.submitter;
+
+    if (submitter && submitter.id !== 'detail-save-btn') {
+      return;
+    }
+
+    e.preventDefault();
+
+    renderChangedItems(getChangedItems());
+
+    modalChangedBy.value = '';
+    modalChangeReason.value = '';
+    changeModal.style.display = 'flex';
+    modalChangedBy.focus();
+  });
+
+  if (modalCancelBtn) {
+    modalCancelBtn.addEventListener('click', function () {
+      changeModal.style.display = 'none';
+    });
+  }
+
+  modalConfirmBtn.addEventListener('click', function () {
+    const changedBy = modalChangedBy.value.trim();
+    const changeReason = modalChangeReason.value.trim();
+
+    if (!changedBy) {
+      alert('변경자를 입력하세요.');
+      modalChangedBy.focus();
+      return;
+    }
+
+    if (!changeReason) {
+      alert('변경사유를 입력하세요.');
+      modalChangeReason.focus();
+      return;
+    }
+
+    document.getElementById('change-batch-by').value = changedBy;
+    document.getElementById('change-batch-reason').value = changeReason;
+
+    changeModal.style.display = 'none';
+
+    allowRealSubmit = true;
+    detailForm.submit();
+  });
+
+  changeModal.addEventListener('click', function (e) {
+    if (e.target === changeModal) {
+      changeModal.style.display = 'none';
+    }
+  });
+});
+</script>
 {% endblock %}
