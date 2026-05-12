@@ -287,7 +287,25 @@ def find_stage_in_project(project_id: int, stage_order: str):
 
 
 def get_project_team(project_id: int):
-    return load_project_teams(project_id)
+    data = load_project_teams(project_id)
+
+    default_team_data = {
+        "team_rows": [
+            {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
+            {"pm": "", "design": "", "machine": "", "control": "", "sales": ""},
+        ]
+    }
+
+    if isinstance(data, dict):
+        data.setdefault("team_rows", default_team_data["team_rows"])
+        return data
+
+    if isinstance(data, list):
+        return {
+            "team_rows": data
+        }
+
+    return default_team_data
 
 
 def normalize_team_rows(pm_list, design_list, machine_list, control_list, sales_list):
