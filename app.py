@@ -245,6 +245,30 @@ def add_stage_change_history(
     )
     save_project_history(project_id, history_rows)
 
+def add_project_change_history(
+    project_id: int,
+    field_name: str,
+    field_label: str,
+    old_value,
+    new_value,
+    changed_by: str,
+    change_reason: str,
+):
+    history_rows = get_project_history(project_id)
+    history_rows.append(
+        {
+            "stage_order": "프로젝트",
+            "field_name": field_name,
+            "field_label": field_label,
+            "old_value": old_value or "",
+            "new_value": new_value or "",
+            "changed_by": changed_by.strip(),
+            "change_reason": change_reason.strip(),
+            "changed_at": now_kst().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+    save_project_history(project_id, history_rows)
+
 
 def get_stage_history_rows(project_id: int, stage_order: str):
     history_rows = get_project_history(project_id)
@@ -776,8 +800,8 @@ def kpi():
                 approval_count += 1
 
     hold_request_count = sum(
-        1 for row in hold_history
-        if row.get("type") == "보류신청" and is_this_week_date(row.get("at"))
+    1 for row in weekly_history
+    if row.get("field_name") == "hold_request"
     )
 
     recent_history = sorted(
@@ -1079,83 +1103,68 @@ def update_project(project_id):
         old_note = existing_stage.get("note", "")
         old_is_not_applicable = existing_stage.get("is_not_applicable", False)
 
-        changed_by_planned = request.form.get(f"changed_by_planned_{key}", "").strip()
-        change_reason_planned = request.form.get(f"change_reason_planned_{key}", "").strip()
+        change_batch_by = request.form.get("change_batch_by", "").strip()
+change_batch_reason = request.form.get("change_batch_reason", "").strip()
 
-        changed_by_actual = request.form.get(f"changed_by_actual_{key}", "").strip()
-        change_reason_actual = request.form.get(f"change_reason_actual_{key}", "").strip()
+has_stage_change = (
+    old_planned_date != planned_date
+    or old_actual_date != actual_date
+    or old_note != note
+    or old_is_not_applicable != is_not_applicable
+)
 
-        if old_planned_date != planned_date:
-            if not old_planned_date and planned_date:
-                add_stage_change_history(
-                    project_id=project_id,
-                    stage_order=key,
-                    field_name="planned_date",
-                    field_label="계획일",
-                    old_value="",
-                    new_value=planned_date,
-                    changed_by="SYSTEM",
-                    change_reason="최초 계획일 입력",
-                )
-            elif changed_by_planned and change_reason_planned:
-                add_stage_change_history(
-                    project_id=project_id,
-                    stage_order=key,
-                    field_name="planned_date",
-                    field_label="계획일",
-                    old_value=old_planned_date,
-                    new_value=planned_date,
-                    changed_by=changed_by_planned,
-                    change_reason=change_reason_planned,
-                )
+if has_stage_change and (not change_batch_by or not change_batch_reason):
+    flash("변경된 항목이 있습니다. 변경자와 변경사유를 입력해야 저장할 수 있습니다.")
+    return redirect(url_for("project_detail", project_id=project_id))
 
-        if old_actual_date != actual_date:
-            if not old_actual_date and actual_date:
-                add_stage_change_history(
-                    project_id=project_id,
-                    stage_order=key,
-                    field_name="actual_date",
-                    field_label="실적일",
-                    old_value="",
-                    new_value=actual_date,
-                    changed_by="SYSTEM",
-                    change_reason="최초 실적일 입력",
-                )
-            elif changed_by_actual and change_reason_actual:
-                add_stage_change_history(
-                    project_id=project_id,
-                    stage_order=key,
-                    field_name="actual_date",
-                    field_label="실적일",
-                    old_value=old_actual_date,
-                    new_value=actual_date,
-                    changed_by=changed_by_actual,
-                    change_reason=change_reason_actual,
-                )
-        if old_note != note:
-            add_stage_change_history(
-                project_id=project_id,
-                stage_order=key,
-                field_name="note",
-                field_label="비고",
-                old_value=old_note,
-                new_value=note,
-                changed_by="SYSTEM",
-                change_reason="최초 비고 입력" if not old_note and note else "비고 변경",
-               )
+if old_planned_date != planned_date:
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=key,
+        field_name="planned_date",
+        field_label="계획일",
+        old_value=old_planned_date,
+        new_value=planned_date,
+        changed_by=change_batch_by,
+        change_reason=change_batch_reason,
+    )
 
-        if old_is_not_applicable != is_not_applicable:
-            add_stage_change_history(
-                project_id=project_id,
-                stage_order=key,
-                field_name="is_not_applicable",
-                field_label="해당없음",
-                old_value="해당없음" if old_is_not_applicable else "해당",
-                new_value="해당없음" if is_not_applicable else "해당",
-                changed_by="SYSTEM",
-                change_reason="해당없음 체크" if is_not_applicable else "해당없음 해제",
-               )
-            approval_date = None
+if old_actual_date != actual_date:
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=key,
+        field_name="actual_date",
+        field_label="실적일",
+        old_value=old_actual_date,
+        new_value=actual_date,
+        changed_by=change_batch_by,
+        change_reason=change_batch_reason,
+    )
+
+if old_note != note:
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=key,
+        field_name="note",
+        field_label="비고",
+        old_value=old_note,
+        new_value=note,
+        changed_by=change_batch_by,
+        change_reason=change_batch_reason,
+    )
+
+if old_is_not_applicable != is_not_applicable:
+    add_stage_change_history(
+        project_id=project_id,
+        stage_order=key,
+        field_name="is_not_applicable",
+        field_label="해당없음",
+        old_value="해당없음" if old_is_not_applicable else "해당",
+        new_value="해당없음" if is_not_applicable else "해당",
+        changed_by=change_batch_by,
+        change_reason=change_batch_reason,
+    )
+    approval_date = None
 
        
 
@@ -1219,15 +1228,26 @@ def request_hold(project_id):
     project["hold_request_memo"] = memo
     project["hold_request_at"] = requested_at
 
-    history = project.get("hold_history", [])
-    history.append({
-        "type": "보류신청",
-        "at": requested_at,
-        "by": request_by,
-        "reason": reason,
-        "memo": memo,
-    })
-    project["hold_history"] = history
+    add_project_change_history(
+    project_id=project_id,
+    field_name="hold_request",
+    field_label="보류 신청",
+    old_value="미신청",
+    new_value="신청",
+    changed_by=request_by,
+    change_reason=reason,
+)
+
+if memo:
+    add_project_change_history(
+        project_id=project_id,
+        field_name="hold_request_memo",
+        field_label="보류 신청 비고",
+        old_value="",
+        new_value=memo,
+        changed_by=request_by,
+        change_reason=reason,
+    )
 
     save_projects(projects)
 
@@ -1251,15 +1271,15 @@ def request_release(project_id):
     project["release_request_reason"] = reason
     project["release_request_at"] = requested_at
 
-    history = project.get("hold_history", [])
-    history.append({
-        "type": "보류해제신청",
-        "at": requested_at,
-        "by": request_by,
-        "reason": reason,
-        "memo": "",
-    })
-    project["hold_history"] = history
+    add_project_change_history(
+    project_id=project_id,
+    field_name="release_request",
+    field_label="보류 해제 요청",
+    old_value="미요청",
+    new_value="요청",
+    changed_by=request_by,
+    change_reason=reason,
+)
 
     save_projects(projects)
 
@@ -1287,15 +1307,36 @@ def set_hold(project_id):
     project["hold_start_date"] = approved_at
     project["hold_end_date"] = None
 
-    history = project.get("hold_history", [])
-    history.append({
-        "type": "보류승인",
-        "at": approved_at,
-        "by": project.get("hold_request_by", ""),
-        "reason": reason,
-        "memo": memo,
-    })
-    project["hold_history"] = history
+    add_project_change_history(
+    project_id=project_id,
+    field_name="project_status",
+    field_label="프로젝트 상태",
+    old_value="진행",
+    new_value="보류",
+    changed_by="품질팀",
+    change_reason="품질팀 보류 승인",
+)
+
+add_project_change_history(
+    project_id=project_id,
+    field_name="hold_reason",
+    field_label="보류 사유",
+    old_value="",
+    new_value=reason,
+    changed_by="품질팀",
+    change_reason="품질팀 보류 승인",
+)
+
+if memo:
+    add_project_change_history(
+        project_id=project_id,
+        field_name="hold_memo",
+        field_label="보류 비고",
+        old_value="",
+        new_value=memo,
+        changed_by="품질팀",
+        change_reason="품질팀 보류 승인",
+    )
 
     save_projects(projects)
     recompute_project(project_id)
@@ -1321,15 +1362,25 @@ def release_hold(project_id):
     project["hold_end_date"] = released_at
     project["release_requested"] = False
     
-    history = project.get("hold_history", [])
-    history.append({
-        "type": "보류해제",
-        "at": released_at,
-        "by": "",
-        "reason": "보류 해제",
-        "memo": "",
-    })
-    project["hold_history"] = history
+    add_project_change_history(
+    project_id=project_id,
+    field_name="project_status",
+    field_label="프로젝트 상태",
+    old_value="보류",
+    new_value="진행",
+    changed_by="품질팀",
+    change_reason="품질팀 보류 해제 승인",
+)
+
+add_project_change_history(
+    project_id=project_id,
+    field_name="hold_end_date",
+    field_label="보류 해제일",
+    old_value="",
+    new_value=released_at,
+    changed_by="품질팀",
+    change_reason="품질팀 보류 해제 승인",
+)
 
     save_projects(projects)
     recompute_project(project_id)

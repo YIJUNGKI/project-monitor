@@ -122,15 +122,6 @@
       </div>
     {% endif %}
 
-    {% if project.get('hold_history') %}
-      <button type="button"
-              class="btn btn-secondary btn-sm"
-              style="margin-top:10px;"
-              onclick="document.getElementById('hold-history-modal').style.display='flex';">
-        보류 이력보기
-      </button>
-    {% endif %}
-
     <div id="hold-request-box" class="hold-info-box" style="display:none;">
       <form method="post" action="{{ url_for('request_hold', project_id=project.id) }}">
         <div style="margin-bottom:8px;">
@@ -192,62 +183,6 @@
     </div>
   </div>
 
-<div id="hold-history-modal"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#fff; width:680px; max-width:94%; border-radius:12px; padding:20px; max-height:80vh; overflow:auto;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <h3 style="margin:0;">보류 이력</h3>
-      <button type="button"
-              class="btn btn-secondary btn-sm"
-              onclick="document.getElementById('hold-history-modal').style.display='none';">
-        닫기
-      </button>
-    </div>
-
-    {% if project.get('hold_history') %}
-      {% for row in project.get('hold_history')|reverse %}
-        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px; margin-bottom:12px;">
-          <div style="margin-bottom:6px;"><strong>구분</strong>: {{ row.type or '-' }}</div>
-          <div style="margin-bottom:6px;"><strong>일시</strong>: {{ row.at or '-' }}</div>
-          <div style="margin-bottom:6px;"><strong>작성자</strong>: {{ row.by or '-' }}</div>
-          <div style="margin-bottom:6px;"><strong>사유</strong>: {{ row.reason or '-' }}</div>
-          <div><strong>비고</strong>: {{ row.memo or '-' }}</div>
-        </div>
-      {% endfor %}
-    {% else %}
-      <p class="muted">보류 이력이 없습니다.</p>
-    {% endif %}
-  </div>
-</div>
-
-<div id="hold-history-modal"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#fff; width:680px; max-width:94%; border-radius:12px; padding:20px; max-height:80vh; overflow:auto;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <h3 style="margin:0;">보류 이력</h3>
-      <button type="button"
-              class="btn btn-secondary btn-sm"
-              onclick="document.getElementById('hold-history-modal').style.display='none';">
-        닫기
-      </button>
-    </div>
-
-    {% if project.get('hold_history') %}
-      {% for row in project.get('hold_history')|reverse %}
-        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px; margin-bottom:12px;">
-          <div style="margin-bottom:6px;"><strong>구분</strong>: {{ row.type or '-' }}</div>
-          <div style="margin-bottom:6px;"><strong>일시</strong>: {{ row.at or '-' }}</div>
-          <div style="margin-bottom:6px;"><strong>작성자</strong>: {{ row.by or '-' }}</div>
-          <div style="margin-bottom:6px;"><strong>사유</strong>: {{ row.reason or '-' }}</div>
-          <div><strong>비고</strong>: {{ row.memo or '-' }}</div>
-        </div>
-      {% endfor %}
-    {% else %}
-      <p class="muted">보류 이력이 없습니다.</p>
-    {% endif %}
-  </div>
-</div>
-
   <div class="detail-side">
     {% set has_delay = project.is_delayed %}
     {% set has_missing = project.is_missing %}
@@ -282,7 +217,8 @@
 
 <section class="card">
   <form method="post" action="/projects/{{ project.id }}/update" {% if project.get('is_hold') %}onsubmit="return false;"{% endif %}>
-
+     <input type="hidden" name="change_batch_by" id="change-batch-by" value="">
+     <input type="hidden" name="change_batch_reason" id="change-batch-reason" value="">   
     <div class="section-header-inline">
       <div class="section-header-left">
         <h2>단계별 현황</h2>
@@ -453,9 +389,10 @@
                 >
 
                 <textarea
-                  name="note_{{ stage.stage_order }}"
-                  class="lock-target note-input note-edit-textarea"
-                  rows="3"
+                    name="note_{{ stage.stage_order }}"
+                    class="lock-target note-input note-edit-textarea"
+                    rows="3"
+                    data-old-value="{{ stage.note or '' }}"
                 >{{ stage.note or '' }}</textarea>
 
                 <div class="note-full-popup">{{ stage.note or '' }}</div>
@@ -469,12 +406,13 @@
             <td>
               <label style="display:inline-flex; align-items:center; gap:6px;">
                 <input
-                  type="checkbox"
-                  name="not_applicable_{{ stage.stage_order }}"
-                  value="Y"
-                  class="na-checkbox"
-                  {% if stage.is_not_applicable %}checked{% endif %}
-                >
+                    type="checkbox"
+                    name="not_applicable_{{ stage.stage_order }}"
+                    value="Y"
+                    class="na-checkbox"
+                    data-old-value="{% if stage.is_not_applicable %}Y{% else %}N{% endif %}"
+                    {% if stage.is_not_applicable %}checked{% endif %}
+              >
                 해당없음
               </label>
             </td>
@@ -888,11 +826,94 @@ openChangeModal(this);
     closeChangeModal(false);
   });
 
-  changeModal.addEventListener('click', function (e) {
+    changeModal.addEventListener('click', function (e) {
     if (e.target === changeModal) {
       closeChangeModal(true);
     }
   });
+
+  // 여기부터 추가
+  const detailForm = document.querySelector('form[action="/projects/{{ project.id }}/update"]');
+
+  if (detailForm && !projectIsHold) {
+    detailForm.addEventListener('submit', function (e) {
+      const changedItems = [];
+
+      document.querySelectorAll('.history-date-input').forEach(function (input) {
+        const oldValue = input.dataset.oldValue || '';
+        const newValue = input.value || '';
+
+        if (oldValue !== newValue) {
+          const row = input.closest('tr');
+          const stageCell = row ? row.querySelector('td:first-child') : null;
+
+          changedItems.push({
+            stage: stageCell ? stageCell.textContent.trim() : '',
+            field: input.dataset.fieldLabel || '',
+            oldValue: oldValue || '공란',
+            newValue: newValue || '공란'
+          });
+        }
+      });
+
+      document.querySelectorAll('.note-edit-textarea').forEach(function (input) {
+        const oldValue = input.dataset.oldValue || '';
+        const newValue = input.value || '';
+
+        if (oldValue !== newValue) {
+          const row = input.closest('tr');
+          const stageCell = row ? row.querySelector('td:first-child') : null;
+
+          changedItems.push({
+            stage: stageCell ? stageCell.textContent.trim() : '',
+            field: '비고',
+            oldValue: oldValue || '공란',
+            newValue: newValue || '공란'
+          });
+        }
+      });
+
+      document.querySelectorAll('.na-checkbox').forEach(function (input) {
+        const oldValue = input.dataset.oldValue || 'N';
+        const newValue = input.checked ? 'Y' : 'N';
+
+        if (oldValue !== newValue) {
+          const row = input.closest('tr');
+          const stageCell = row ? row.querySelector('td:first-child') : null;
+
+          changedItems.push({
+            stage: stageCell ? stageCell.textContent.trim() : '',
+            field: '해당없음',
+            oldValue: oldValue === 'Y' ? '해당없음' : '해당',
+            newValue: newValue === 'Y' ? '해당없음' : '해당'
+          });
+        }
+      });
+
+      if (changedItems.length === 0) {
+        return;
+      }
+
+      const changedBy = window.prompt('변경자를 입력하세요.');
+      if (!changedBy || !changedBy.trim()) {
+        e.preventDefault();
+        alert('변경자를 입력해야 저장할 수 있습니다.');
+        return;
+      }
+
+      const changeReason = window.prompt('변경사유를 입력하세요.');
+      if (!changeReason || !changeReason.trim()) {
+        e.preventDefault();
+        alert('변경사유를 입력해야 저장할 수 있습니다.');
+        return;
+      }
+
+      document.getElementById('change-batch-by').value = changedBy.trim();
+      document.getElementById('change-batch-reason').value = changeReason.trim();
+    });
+  }
+  // 여기까지 추가
+
 });
 </script>
 
