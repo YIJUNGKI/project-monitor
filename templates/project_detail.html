@@ -401,8 +401,6 @@
                   data-old-value="{{ stage.note or '' }}"
                 >{{ stage.note or '' }}</textarea>
 
-                <div class="note-full-popup">{{ stage.note or '' }}</div>
-
                 {% if stage.note_help and not stage.note %}
                   <div class="note-help">{{ stage.note_help }}</div>
                 {% endif %}
@@ -1321,31 +1319,6 @@ document.addEventListener('DOMContentLoaded', function () {
   display: block;
 }
 
-.note-full-popup {
-  display: none;
-  position: absolute;
-  left: 0;
-  top: 38px;
-  z-index: 30;
-  min-width: 260px;
-  max-width: 420px;
-  white-space: pre-line;
-  background: #111827;
-  color: #fff;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.5;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
-}
-
-.note-cell:hover .note-full-popup {
-  display: block;
-}
-
-.note-cell.is-editing .note-full-popup {
-  display: none;
-}
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
