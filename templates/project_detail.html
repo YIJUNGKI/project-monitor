@@ -705,17 +705,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     checkbox.addEventListener('change', function () {
       updateRowLock();
-
-      if (checkbox.checked && !savedNa) {
-        window.alert('비고란에 해당없음 사유를 입력하시오.');
-
-        const noteInput = row.querySelector('.note-input');
-        if (noteInput) {
-          const cell = noteInput.closest('.note-cell');
-          openNoteEditor(cell);
-        }
-      }
-    });
+  });
 
     updateRowLock();
   });
