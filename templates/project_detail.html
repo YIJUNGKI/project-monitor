@@ -532,6 +532,17 @@
       <button type="button" class="btn btn-secondary btn-sm" id="project-history-close-btn">닫기</button>
     </div>
 
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+        <button type="button" class="btn btn-secondary btn-sm history-filter-btn" data-filter="all">전체</button>
+        <button type="button" class="btn btn-secondary btn-sm history-filter-btn" data-filter="planned_date">계획일</button>
+        <button type="button" class="btn btn-secondary btn-sm history-filter-btn" data-filter="actual_date">실적일</button>
+        <button type="button" class="btn btn-secondary btn-sm history-filter-btn" data-filter="note">비고</button>
+        <button type="button" class="btn btn-secondary btn-sm history-filter-btn" data-filter="is_not_applicable">해당없음</button>
+        <button type="button" class="btn btn-secondary btn-sm history-filter-btn" data-filter="approval">승인</button>
+        <button type="button" class="btn btn-secondary btn-sm history-filter-btn" data-filter="hold">보류</button>
+        <button type="button" class="btn btn-secondary btn-sm history-filter-btn" data-filter="team_members">팀구성</button>
+    </div>
+
     <div id="project-history-body">
       <p class="muted">이력을 불러오는 중입니다.</p>
     </div>
@@ -542,361 +553,168 @@
 </section>
 
 <script>
+<script>
 document.addEventListener('DOMContentLoaded', function () {
-  const projectIsHold = "{{ 'Y' if project.get('is_hold') else 'N' }}" === "Y";
+  const openBtn = document.getElementById('project-history-view-btn');
+  const modal = document.getElementById('project-history-modal');
+  const body = document.getElementById('project-history-body');
+  const closeBtn = document.getElementById('project-history-close-btn');
+  const filterButtons = document.querySelectorAll('.history-filter-btn');
 
-  if (projectIsHold) {
-    document.querySelectorAll('.detail-stage-table input, .detail-stage-table textarea, .detail-stage-table select').forEach(function (el) {
-      el.disabled = true;
-      el.classList.add('row-readonly');
-    });
+  let allHistoryItems = [];
+  let currentFilter = 'all';
 
-    document.querySelectorAll('.team-mini-table input, #add-team-row, .team-remove-btn').forEach(function (el) {
-      el.disabled = true;
-      el.classList.add('row-readonly');
-    });
+  if (!openBtn || !modal || !body || !closeBtn) return;
 
-    const saveBtn = document.querySelector('form[action="/projects/{{ project.id }}/update"] button[type="submit"]');
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.textContent = '보류중 입력잠금';
-    }
+  function isHoldHistory(item) {
+    const fieldName = item.field_name || '';
+    const fieldLabel = item.field_label || '';
+
+    return (
+      fieldName.indexOf('hold') !== -1 ||
+      fieldLabel.indexOf('보류') !== -1
+    );
   }
 
-  const rows = document.querySelectorAll('.detail-stage-row');
+  function isApprovalHistory(item) {
+    const fieldName = item.field_name || '';
+    const fieldLabel = item.field_label || '';
 
-  function autoResizeNoteTextarea(el) {
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+    return (
+      fieldName === 'approval' ||
+      fieldLabel.indexOf('승인') !== -1
+    );
   }
 
-  function syncNoteInline(cell) {
-    const inlineInput = cell.querySelector('.note-inline-input');
-    const textarea = cell.querySelector('.note-edit-textarea');
-    const popup = cell.querySelector('.note-full-popup');
-
-    if (!inlineInput || !textarea) return;
-
-    const value = textarea.value || '';
-    inlineInput.value = value;
-    inlineInput.title = value;
-
-    if (popup) {
-      popup.textContent = value;
+  function getFilteredItems() {
+    if (currentFilter === 'all') {
+      return allHistoryItems;
     }
+
+    if (currentFilter === 'hold') {
+      return allHistoryItems.filter(isHoldHistory);
+    }
+
+    if (currentFilter === 'approval') {
+      return allHistoryItems.filter(isApprovalHistory);
+    }
+
+    return allHistoryItems.filter(function (item) {
+      return item.field_name === currentFilter;
+    });
   }
 
-  function closeNoteEditor(cell) {
-    if (!cell) return;
-    syncNoteInline(cell);
-    cell.classList.remove('is-editing');
-  }
+  function renderProjectHistory() {
+    const items = getFilteredItems();
 
-  function openNoteEditor(cell) {
-    if (!cell) return;
-
-    const textarea = cell.querySelector('.note-edit-textarea');
-    if (!textarea) return;
-    if (textarea.disabled || textarea.readOnly) return;
-
-    cell.classList.add('is-editing');
-    autoResizeNoteTextarea(textarea);
-    textarea.focus();
-
-    const len = textarea.value.length;
-    textarea.setSelectionRange(len, len);
-  }
-
-  document.querySelectorAll('.note-cell').forEach(function (cell) {
-    const inlineInput = cell.querySelector('.note-inline-input');
-    const textarea = cell.querySelector('.note-edit-textarea');
-
-    if (!inlineInput || !textarea) return;
-
-    syncNoteInline(cell);
-    autoResizeNoteTextarea(textarea);
-
-    inlineInput.addEventListener('click', function () {
-      openNoteEditor(cell);
-    });
-
-    textarea.addEventListener('input', function () {
-      syncNoteInline(cell);
-      autoResizeNoteTextarea(textarea);
-    });
-
-    textarea.addEventListener('blur', function () {
-      closeNoteEditor(cell);
-    });
-  });
-
-  rows.forEach(function (row) {
-    const checkbox = row.querySelector('.na-checkbox');
-    if (!checkbox) return;
-
-    const targets = row.querySelectorAll('.lock-target');
-    const savedNa = row.dataset.savedNa === 'Y';
-    const isMaster = row.dataset.isMaster === 'Y';
-
-    function setReadonly(input) {
-      input.disabled = false;
-      input.readOnly = true;
-      input.classList.add('row-readonly');
-
-      if (input.classList.contains('note-input')) {
-        const cell = input.closest('.note-cell');
-        closeNoteEditor(cell);
-      }
-    }
-
-    function setEditable(input) {
-      input.disabled = false;
-      input.readOnly = false;
-      input.classList.remove('row-readonly');
-
-      if (input.classList.contains('note-input')) {
-        const cell = input.closest('.note-cell');
-        syncNoteInline(cell);
-      }
-    }
-
-    function setDisabled(input) {
-      input.disabled = true;
-      input.readOnly = false;
-      input.classList.remove('row-readonly');
-
-      if (input.classList.contains('note-input')) {
-        const cell = input.closest('.note-cell');
-        closeNoteEditor(cell);
-      }
-    }
-
-    function updateRowLock() {
-      const isCompleteRow = row.classList.contains('detail-row-complete');
-      const isNaChecked = checkbox.checked;
-
-      targets.forEach(function (input) {
-        const isNoteInput = input.classList.contains('note-input');
-        const isApprovalInput = input.classList.contains('approval-input');
-
-        if (isApprovalInput) {
-          setReadonly(input);
-          return;
-        }
-
-        if (isCompleteRow) {
-          setReadonly(input);
-          return;
-        }
-
-        if (savedNa) {
-          setReadonly(input);
-          return;
-        }
-
-        if (isNaChecked) {
-          if (isNoteInput) {
-            setEditable(input);
-          } else {
-            setDisabled(input);
-          }
-          return;
-        }
-
-        setEditable(input);
-      });
-
-      checkbox.disabled = false;
-      checkbox.dataset.locked = (isCompleteRow || (savedNa && !isMaster)) ? 'Y' : 'N';
-    }
-
-    checkbox.addEventListener('click', function (e) {
-      if (checkbox.dataset.locked === 'Y') {
-        e.preventDefault();
-      }
-    });
-
-    checkbox.addEventListener('change', function () {
-      updateRowLock();
-  });
-
-    updateRowLock();
-  });
-
-  const detailForm = document.querySelector('form[action*="/projects/"][action$="/update"]');
-  const detailSaveBtn = document.getElementById('detail-save-btn');
-
-  const changeModal = document.getElementById('change-history-modal');
-  const modalChangeList = document.getElementById('modal-change-list');
-  const modalChangedBy = document.getElementById('modal-changed-by');
-  const modalChangeReason = document.getElementById('modal-change-reason');
-  const modalCancelBtn = document.getElementById('modal-cancel-btn');
-  const modalConfirmBtn = document.getElementById('modal-confirm-btn');
-
-  let pendingSubmitForm = null;
-
-  function getChangedItems() {
-    const changedItems = [];
-
-    document.querySelectorAll('.history-date-input').forEach(function (input) {
-      const oldValue = input.dataset.oldValue || '';
-      const newValue = input.value || '';
-
-      if (oldValue !== newValue) {
-        const row = input.closest('tr');
-        const stageCell = row ? row.querySelector('td:first-child') : null;
-
-        changedItems.push({
-          stage: stageCell ? stageCell.textContent.trim() : '',
-          field: input.dataset.fieldLabel || '',
-          oldValue: oldValue || '공란',
-          newValue: newValue || '공란'
-        });
-      }
-    });
-
-    document.querySelectorAll('.note-edit-textarea').forEach(function (input) {
-      const oldValue = input.dataset.oldValue || '';
-      const newValue = input.value || '';
-
-      if (oldValue !== newValue) {
-        const row = input.closest('tr');
-        const stageCell = row ? row.querySelector('td:first-child') : null;
-
-        changedItems.push({
-          stage: stageCell ? stageCell.textContent.trim() : '',
-          field: '비고',
-          oldValue: oldValue || '공란',
-          newValue: newValue || '공란'
-        });
-      }
-    });
-
-    document.querySelectorAll('.na-checkbox').forEach(function (input) {
-      const oldValue = input.dataset.oldValue || 'N';
-      const newValue = input.checked ? 'Y' : 'N';
-
-      if (oldValue !== newValue) {
-        const row = input.closest('tr');
-        const stageCell = row ? row.querySelector('td:first-child') : null;
-
-        changedItems.push({
-          stage: stageCell ? stageCell.textContent.trim() : '',
-          field: '해당없음',
-          oldValue: oldValue === 'Y' ? '해당없음' : '해당',
-          newValue: newValue === 'Y' ? '해당없음' : '해당'
-        });
-      }
-    });
-
-    document.querySelectorAll('.team-mini-table input').forEach(function (input) {
-      const oldValue = input.defaultValue || '';
-      const newValue = input.value || '';
-
-      if (oldValue !== newValue) {
-        changedItems.push({
-          stage: '프로젝트',
-          field: '팀구성',
-          oldValue: oldValue || '공란',
-          newValue: newValue || '공란'
-        });
-      }
-    });
-
-    return changedItems;
-  }
-
-  function renderChangedItems(items) {
-    if (!modalChangeList) return;
-
-    if (!items.length) {
-      modalChangeList.innerHTML =
-        '<p class="muted" style="margin:0;">변경된 항목을 자동 감지하지 못했습니다. 변경자와 변경사유를 입력하면 서버에서 실제 변경분만 이력으로 저장합니다.</p>';
+    if (items.length === 0) {
+      body.innerHTML = '<p class="muted">해당 조건의 변경이력이 없습니다.</p>';
       return;
     }
 
-    let html = '<ul style="margin:0; padding-left:18px;">';
+    let html = `
+      <div class="table-wrap">
+        <table class="project-history-table">
+          <thead>
+            <tr>
+              <th>변경일시</th>
+              <th>단계</th>
+              <th>항목</th>
+              <th>변경전</th>
+              <th>변경후</th>
+              <th>변경자</th>
+              <th>사유</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
 
     items.forEach(function (item) {
       html += `
-        <li style="margin-bottom:8px;">
-          <strong>${item.stage}</strong> / ${item.field}<br>
-          <span style="color:#64748b;">${item.oldValue}</span>
-          →
-          <span style="color:#111827;">${item.newValue}</span>
-        </li>
+        <tr>
+          <td>${item.changed_at || '-'}</td>
+          <td>${item.stage_order || '-'}</td>
+          <td>${item.field_label || '-'}</td>
+          <td>${item.old_value || '-'}</td>
+          <td>${item.new_value || '-'}</td>
+          <td>${item.changed_by || '-'}</td>
+          <td>${item.change_reason || '-'}</td>
+        </tr>
       `;
     });
 
-    html += '</ul>';
-    modalChangeList.innerHTML = html;
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    body.innerHTML = html;
   }
 
-  if (detailSaveBtn && detailForm && !projectIsHold) {
-    detailSaveBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-
-      pendingSubmitForm = detailForm;
-
-      renderChangedItems(getChangedItems());
-
-      if (modalChangedBy) modalChangedBy.value = '';
-      if (modalChangeReason) modalChangeReason.value = '';
-
-      if (changeModal) {
-        changeModal.style.display = 'flex';
-      }
-
-      if (modalChangedBy) {
-        modalChangedBy.focus();
+  function setActiveFilterButton() {
+    filterButtons.forEach(function (btn) {
+      if (btn.dataset.filter === currentFilter) {
+        btn.style.fontWeight = '700';
+        btn.style.borderColor = '#111827';
+      } else {
+        btn.style.fontWeight = '';
+        btn.style.borderColor = '';
       }
     });
   }
 
-  if (modalCancelBtn) {
-    modalCancelBtn.addEventListener('click', function () {
-      pendingSubmitForm = null;
-      if (changeModal) changeModal.style.display = 'none';
+  filterButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentFilter = this.dataset.filter || 'all';
+      setActiveFilterButton();
+      renderProjectHistory();
     });
-  }
+  });
 
-  if (modalConfirmBtn) {
-    modalConfirmBtn.addEventListener('click', function () {
-      const changedBy = modalChangedBy ? modalChangedBy.value.trim() : '';
-      const changeReason = modalChangeReason ? modalChangeReason.value.trim() : '';
+  openBtn.addEventListener('click', function () {
+    const projectId = this.dataset.projectId;
 
-      if (!changedBy) {
-        alert('변경자를 입력하세요.');
-        if (modalChangedBy) modalChangedBy.focus();
-        return;
-      }
+    currentFilter = 'all';
+    setActiveFilterButton();
 
-      if (!changeReason) {
-        alert('변경사유를 입력하세요.');
-        if (modalChangeReason) modalChangeReason.focus();
-        return;
-      }
+    body.innerHTML = '<p class="muted">이력을 불러오는 중입니다.</p>';
+    modal.style.display = 'flex';
 
-      document.getElementById('change-batch-by').value = changedBy;
-      document.getElementById('change-batch-reason').value = changeReason;
+    fetch(`/projects/${projectId}/history`)
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data.ok || !data.items) {
+          body.innerHTML = '<p>전체 변경이력 조회에 실패했습니다.</p>';
+          return;
+        }
 
-      if (changeModal) changeModal.style.display = 'none';
+        allHistoryItems = data.items || [];
 
-      if (pendingSubmitForm) {
-        pendingSubmitForm.submit();
-      }
-    });
-  }
+        if (allHistoryItems.length === 0) {
+          body.innerHTML = '<p class="muted">변경이력이 없습니다.</p>';
+          return;
+        }
 
-  if (changeModal) {
-    changeModal.addEventListener('click', function (e) {
-      if (e.target === changeModal) {
-        pendingSubmitForm = null;
-        changeModal.style.display = 'none';
-      }
-    });
-  }});
+        renderProjectHistory();
+      })
+      .catch(function () {
+        body.innerHTML = '<p>전체 변경이력 조회 중 오류가 발생했습니다.</p>';
+      });
+  });
+
+  closeBtn.addEventListener('click', function () {
+    modal.style.display = 'none';
+  });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+});
 </script>
 
 <script>
