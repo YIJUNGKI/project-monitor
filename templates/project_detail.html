@@ -639,8 +639,8 @@ document.addEventListener('DOMContentLoaded', function () {
           <td>${item.changed_at || '-'}</td>
           <td>${item.stage_order || '-'}</td>
           <td>${item.field_label || '-'}</td>
-          <td style="white-space:pre-line;">${item.old_value || '-'}</td>
-          <td style="white-space:pre-line;">${item.new_value || '-'}</td>
+          <td style="white-space:pre-line; min-width:220px; vertical-align:top;">${formatHistoryValueForDisplay(item, item.old_value)}</td>
+          <td style="white-space:pre-line; min-width:220px; vertical-align:top;">${formatHistoryValueForDisplay(item, item.new_value)}</td>
           <td>${item.changed_by || '-'}</td>
           <td>${item.change_reason || '-'}</td>
         </tr>
@@ -972,6 +972,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function formatHistoryValueForDisplay(item, value) {
+    const text = value || '-';
+
+    if ((item.field_name || '') !== 'team_members' && (item.field_label || '') !== '팀구성') {
+      return text;
+    }
+
+    return text
+      .replace(/\s*\/\s*/g, '\n')
+      .replace(/\s*\|\s*/g, '\n\n')
+      .replace(/(\d+행)\s*/g, '$1\n')
+      .replace(/\s*(PM:)/g, '\n$1')
+      .replace(/\s*(설계:)/g, '\n$1')
+      .replace(/\s*(기계:)/g, '\n$1')
+      .replace(/\s*(제어:)/g, '\n$1')
+      .replace(/\s*(영업:)/g, '\n$1')
+      .replace(/^\n+/, '');
+  }
+
   function renderFilteredHistory() {
     const items = getFilteredHistoryItems();
 
@@ -1003,8 +1022,8 @@ document.addEventListener('DOMContentLoaded', function () {
           <td>${item.changed_at || '-'}</td>
           <td>${item.stage_order || '-'}</td>
           <td>${item.field_label || '-'}</td>
-          <td>${item.old_value || '-'}</td>
-          <td>${item.new_value || '-'}</td>
+          <td style="white-space:pre-line; min-width:220px; vertical-align:top;">${formatHistoryValueForDisplay(item, item.old_value)}</td>
+          <td style="white-space:pre-line; min-width:220px; vertical-align:top;">${formatHistoryValueForDisplay(item, item.new_value)}</td>
           <td>${item.changed_by || '-'}</td>
           <td>${item.change_reason || '-'}</td>
         </tr>
