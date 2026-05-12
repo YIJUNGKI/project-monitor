@@ -384,22 +384,17 @@
             </td>
 
             <td>
-              <textarea
-                 name="note_{{ stage.stage_order }}"
-                 class="lock-target note-input note-edit-textarea"
-                 rows="2"
-                 data-old-value="{{ stage.note or '' }}"
-                 style="width:100%; min-height:38px; resize:vertical;"
-                 placeholder="{% if stage.note_help and not stage.note %}{{ stage.note_help }}{% endif %}"
-              >{{ stage.note or '' }}</textarea>
-            </td>
+               <textarea
+                  name="note_{{ stage.stage_order }}"
+                  class="lock-target note-input note-edit-textarea"
+                  rows="2"
+                  data-old-value="{{ stage.note or '' }}"
+                  style="display:block; width:100%; min-height:38px; resize:vertical; box-sizing:border-box;"
+               >{{ stage.note or '' }}</textarea>
 
-                <div class="note-full-popup">{{ stage.note or '' }}</div>
-
-                {% if stage.note_help and not stage.note %}
+               {% if stage.note_help and not stage.note %}
                   <div class="note-help">{{ stage.note_help }}</div>
-                {% endif %}
-              </div>
+               {% endif %}
             </td>
 
             <td>
@@ -551,7 +546,6 @@
   </form>
 </section>
 
-<script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const openBtn = document.getElementById('project-history-view-btn');
@@ -1233,6 +1227,53 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.target === changeModal) {
       changeModal.style.display = 'none';
     }
+  });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function lockRowByNa(row) {
+    const checkbox = row.querySelector('.na-checkbox');
+    if (!checkbox) return;
+
+    const isNaChecked = checkbox.checked;
+    const savedNa = row.dataset.savedNa === 'Y';
+    const isCompleteRow = row.classList.contains('detail-row-complete');
+
+    const targets = row.querySelectorAll('.lock-target');
+
+    targets.forEach(function (input) {
+      const isApprovalInput = input.classList.contains('approval-input');
+
+      if (isApprovalInput) {
+        input.disabled = false;
+        input.readOnly = true;
+        input.classList.add('row-readonly');
+        return;
+      }
+
+      if (isCompleteRow || savedNa || isNaChecked) {
+        input.disabled = false;
+        input.readOnly = true;
+        input.classList.add('row-readonly');
+        return;
+      }
+
+      input.disabled = false;
+      input.readOnly = false;
+      input.classList.remove('row-readonly');
+    });
+  }
+
+  document.querySelectorAll('.detail-stage-row').forEach(function (row) {
+    const checkbox = row.querySelector('.na-checkbox');
+    if (!checkbox) return;
+
+    lockRowByNa(row);
+
+    checkbox.addEventListener('change', function () {
+      lockRowByNa(row);
+    });
   });
 });
 </script>
