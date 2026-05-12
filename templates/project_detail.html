@@ -548,18 +548,8 @@ document.addEventListener('DOMContentLoaded', function () {
       saveBtn.textContent = '보류중 입력잠금';
     }
   }
-  const rows = document.querySelectorAll('.detail-stage-row');
-  let pendingChange = null;
 
-  const changeModal = document.getElementById('change-history-modal');
-  const modalStageName = document.getElementById('modal-stage-name');
-  const modalFieldLabel = document.getElementById('modal-field-label');
-  const modalOldValue = document.getElementById('modal-old-value');
-  const modalNewValue = document.getElementById('modal-new-value');
-  const modalChangedBy = document.getElementById('modal-changed-by');
-  const modalChangeReason = document.getElementById('modal-change-reason');
-  const modalCancelBtn = document.getElementById('modal-cancel-btn');
-  const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+  const rows = document.querySelectorAll('.detail-stage-row');
 
   function autoResizeNoteTextarea(el) {
     if (!el) return;
@@ -730,104 +720,16 @@ document.addEventListener('DOMContentLoaded', function () {
     updateRowLock();
   });
 
-  function openChangeModal(input) {
-    const row = input.closest('tr');
-    const stageCell = row ? row.querySelector('td:first-child') : null;
-
-    pendingChange = {
-      input: input,
-      stageOrder: input.dataset.stageOrder,
-      fieldName: input.dataset.fieldName,
-      fieldLabel: input.dataset.fieldLabel,
-      oldValue: input.dataset.oldValue || '',
-      newValue: input.value || '',
-      stageNameText: stageCell ? stageCell.textContent.trim() : ''
-    };
-
-    modalStageName.textContent = pendingChange.stageNameText || '-';
-    modalFieldLabel.textContent = pendingChange.fieldLabel || '-';
-    modalOldValue.textContent = pendingChange.oldValue || '-';
-    modalNewValue.textContent = pendingChange.newValue || '-';
-    modalChangedBy.value = '';
-    modalChangeReason.value = '';
-
-    changeModal.style.display = 'flex';
-  }
-
-  function closeChangeModal(restoreOldValue) {
-    if (restoreOldValue && pendingChange && pendingChange.input) {
-      pendingChange.input.value = pendingChange.oldValue;
-    }
-
-    pendingChange = null;
-    changeModal.style.display = 'none';
-  }
-
-
-    changeModal.addEventListener('click', function (e) {
-    if (e.target === changeModal) {
-      closeChangeModal(true);
-    }
-  });
-
-  const detailForm = document.querySelector('form[action="/projects/{{ project.id }}/update"]');
+  const detailForm = document.querySelector('form[action$="/update"]');
 
   if (detailForm && !projectIsHold) {
     detailForm.addEventListener('submit', function (e) {
-      const changedItems = [];
+      const changedByInput = document.getElementById('change-batch-by');
+      const changeReasonInput = document.getElementById('change-batch-reason');
 
-      document.querySelectorAll('.history-date-input').forEach(function (input) {
-        const oldValue = input.dataset.oldValue || '';
-        const newValue = input.value || '';
-
-        if (oldValue !== newValue) {
-          const row = input.closest('tr');
-          const stageCell = row ? row.querySelector('td:first-child') : null;
-
-          changedItems.push({
-            stage: stageCell ? stageCell.textContent.trim() : '',
-            field: input.dataset.fieldLabel || '',
-            oldValue: oldValue || '공란',
-            newValue: newValue || '공란'
-          });
-        }
-      });
-
-      document.querySelectorAll('.note-edit-textarea').forEach(function (input) {
-        const oldValue = input.dataset.oldValue || '';
-        const newValue = input.value || '';
-
-        if (oldValue !== newValue) {
-          const row = input.closest('tr');
-          const stageCell = row ? row.querySelector('td:first-child') : null;
-
-          changedItems.push({
-            stage: stageCell ? stageCell.textContent.trim() : '',
-            field: '비고',
-            oldValue: oldValue || '공란',
-            newValue: newValue || '공란'
-          });
-        }
-      });
-
-      document.querySelectorAll('.na-checkbox').forEach(function (input) {
-        const oldValue = input.dataset.oldValue || 'N';
-        const newValue = input.checked ? 'Y' : 'N';
-
-        if (oldValue !== newValue) {
-          const row = input.closest('tr');
-          const stageCell = row ? row.querySelector('td:first-child') : null;
-
-          changedItems.push({
-            stage: stageCell ? stageCell.textContent.trim() : '',
-            field: '해당없음',
-            oldValue: oldValue === 'Y' ? '해당없음' : '해당',
-            newValue: newValue === 'Y' ? '해당없음' : '해당'
-          });
-        }
-      });
-
-      if (changedItems.length === 0) {
+      if (!changedByInput || !changeReasonInput) {
+        e.preventDefault();
+        alert('변경이력 hidden input이 없습니다. form 바로 아래 change_batch_by/change_batch_reason을 확인하세요.');
         return;
       }
 
@@ -845,93 +747,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      document.getElementById('change-batch-by').value = changedBy.trim();
-      document.getElementById('change-batch-reason').value = changeReason.trim();
+      changedByInput.value = changedBy.trim();
+      changeReasonInput.value = changeReason.trim();
     });
   }
-
-  // 여기부터 추가
-  const detailForm = document.querySelector('form[action="/projects/{{ project.id }}/update"]');
-
-  if (detailForm && !projectIsHold) {
-    detailForm.addEventListener('submit', function (e) {
-      const changedItems = [];
-
-      document.querySelectorAll('.history-date-input').forEach(function (input) {
-        const oldValue = input.dataset.oldValue || '';
-        const newValue = input.value || '';
-
-        if (oldValue !== newValue) {
-          const row = input.closest('tr');
-          const stageCell = row ? row.querySelector('td:first-child') : null;
-
-          changedItems.push({
-            stage: stageCell ? stageCell.textContent.trim() : '',
-            field: input.dataset.fieldLabel || '',
-            oldValue: oldValue || '공란',
-            newValue: newValue || '공란'
-          });
-        }
-      });
-
-      document.querySelectorAll('.note-edit-textarea').forEach(function (input) {
-        const oldValue = input.dataset.oldValue || '';
-        const newValue = input.value || '';
-
-        if (oldValue !== newValue) {
-          const row = input.closest('tr');
-          const stageCell = row ? row.querySelector('td:first-child') : null;
-
-          changedItems.push({
-            stage: stageCell ? stageCell.textContent.trim() : '',
-            field: '비고',
-            oldValue: oldValue || '공란',
-            newValue: newValue || '공란'
-          });
-        }
-      });
-
-      document.querySelectorAll('.na-checkbox').forEach(function (input) {
-        const oldValue = input.dataset.oldValue || 'N';
-        const newValue = input.checked ? 'Y' : 'N';
-
-        if (oldValue !== newValue) {
-          const row = input.closest('tr');
-          const stageCell = row ? row.querySelector('td:first-child') : null;
-
-          changedItems.push({
-            stage: stageCell ? stageCell.textContent.trim() : '',
-            field: '해당없음',
-            oldValue: oldValue === 'Y' ? '해당없음' : '해당',
-            newValue: newValue === 'Y' ? '해당없음' : '해당'
-          });
-        }
-      });
-
-      if (changedItems.length === 0) {
-        return;
-      }
-
-      const changedBy = window.prompt('변경자를 입력하세요.');
-      if (!changedBy || !changedBy.trim()) {
-        e.preventDefault();
-        alert('변경자를 입력해야 저장할 수 있습니다.');
-        return;
-      }
-
-      const changeReason = window.prompt('변경사유를 입력하세요.');
-      if (!changeReason || !changeReason.trim()) {
-        e.preventDefault();
-        alert('변경사유를 입력해야 저장할 수 있습니다.');
-        return;
-      }
-
-      document.getElementById('change-batch-by').value = changedBy.trim();
-      document.getElementById('change-batch-reason').value = changeReason.trim();
-    });
-  }
-  // 여기까지 추가
-
 });
 </script>
 
