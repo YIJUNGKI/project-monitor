@@ -30,9 +30,11 @@
         <form method="post"
               action="{{ url_for('release_hold', project_id=project.id) }}"
               style="display:inline;">
-          <button type="submit" class="btn btn-secondary btn-sm">
+        <button type="submit"
+                    class="btn btn-secondary btn-sm"
+                    onclick="return confirm('보류 해제 승인하시겠습니까?');">
             해제 승인
-          </button>
+        </button>
         </form>
       {% endif %}
 
@@ -42,9 +44,11 @@
         <form method="post"
               action="{{ url_for('release_hold', project_id=project.id) }}"
               style="display:inline;">
-          <button type="submit" class="btn btn-secondary btn-sm">
+          <button type="submit"
+                      class="btn btn-secondary btn-sm"
+                      onclick="return confirm('보류 해제하시겠습니까?');">
             보류 해제
-          </button>
+        </button>
         </form>
       {% else %}
         <button type="button"
@@ -64,9 +68,11 @@
       <form method="post"
             action="{{ url_for('set_hold', project_id=project.id) }}"
             style="display:inline;">
-        <button type="submit" class="btn btn-secondary btn-sm">
+      <button type="submit"
+                  class="btn btn-secondary btn-sm"
+                  onclick="return confirm('보류 승인하시겠습니까?');">
           보류 승인
-        </button>
+      </button>
       </form>
     {% endif %}
 
@@ -635,8 +641,8 @@ document.addEventListener('DOMContentLoaded', function () {
           <td>${item.changed_at || '-'}</td>
           <td>${item.stage_order || '-'}</td>
           <td>${item.field_label || '-'}</td>
-          <td>${item.old_value || '-'}</td>
-          <td>${item.new_value || '-'}</td>
+          <td style="white-space:pre-line;">${item.old_value || '-'}</td>
+          <td style="white-space:pre-line;">${item.new_value || '-'}</td>
           <td>${item.changed_by || '-'}</td>
           <td>${item.change_reason || '-'}</td>
         </tr>

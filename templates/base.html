@@ -15,6 +15,12 @@
   <a href="/projects" class="{% if request.path.startswith('/projects') %}nav-link-active{% endif %}">프로젝트 목록</a>
 
   {% if is_master %}
+    {% if is_master %}
+    <a href="{{ url_for('admin_backup') }}"
+         class="btn btn-secondary btn-sm">
+        데이터 백업
+    </a>
+  {% endif %} 
     <span class="master-badge">마스터 모드 ON</span>
     <form method="post" action="{{ url_for('master_logout') }}" style="display:inline;">
       <button type="submit" class="master-nav-btn">로그아웃</button>

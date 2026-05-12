@@ -1247,15 +1247,18 @@ def update_project(project_id):
 
         for index, row in enumerate(rows, start=1):
             values = [
-                f"PM:{row.get('pm', '') or '-'}",
-                f"설계:{row.get('design', '') or '-'}",
-                f"기계:{row.get('machine', '') or '-'}",
-                f"제어:{row.get('control', '') or '-'}",
-                f"영업:{row.get('sales', '') or '-'}",
+                f"PM: {row.get('pm', '') or '-'}",
+                f"설계: {row.get('design', '') or '-'}",
+                f"기계: {row.get('machine', '') or '-'}",
+                f"제어: {row.get('control', '') or '-'}",
+                f"영업: {row.get('sales', '') or '-'}",
             ]
-            formatted_rows.append(f"{index}행 " + " / ".join(values))
 
-        return " | ".join(formatted_rows) if formatted_rows else "-"
+            formatted_rows.append(
+                f"{index}행\n" + "\n".join(values)
+            )
+
+        return "\n\n".join(formatted_rows) if formatted_rows else "-"
 
     if old_team_rows != team_rows:
         change_batch_by = request.form.get("change_batch_by", "").strip()
@@ -1607,6 +1610,40 @@ def project_all_history(project_id: int):
         "items": rows
     })
 
+@app.route("/admin/backup")
+def admin_backup():
+    if not require_master():
+        return redirect(url_for("dashboard"))
+
+    projects = load_projects()
+
+    backup = {
+        "exported_at": now_kst().strftime("%Y-%m-%d %H:%M:%S"),
+        "projects": projects,
+        "stages": {},
+        "teams": {},
+        "history": {},
+    }
+
+    for project in projects:
+        project_id = project.get("id")
+        if not project_id:
+            continue
+
+        backup["stages"][str(project_id)] = load_project_stages(project_id)
+        backup["teams"][str(project_id)] = get_project_team(project_id)
+        backup["history"][str(project_id)] = get_project_history(project_id)
+
+    response = app.response_class(
+        response=json.dumps(backup, ensure_ascii=False, indent=2),
+        status=200,
+        mimetype="application/json",
+    )
+
+    filename = f"project-monitor-backup-{now_kst().strftime('%Y%m%d-%H%M%S')}.json"
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+
+    return response
 
 if __name__ == "__main__":
     app.run(debug=True)
