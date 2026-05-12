@@ -796,6 +796,29 @@ def kpi():
         d = parse_date(str(date_text)[:10])
         return d and week_start <= d < week_end
 
+    def is_empty_history_value(value):
+        value = str(value or "").strip()
+        return value in ["", "-", "None", "none", "null", "공란"]
+
+    def is_real_planned_date_change(history_row):
+        field_name = history_row.get("field_name", "")
+        old_value = history_row.get("old_value")
+        new_value = history_row.get("new_value")
+
+        if field_name != "planned_date":
+            return False
+
+        if is_empty_history_value(old_value):
+           return False
+
+        if is_empty_history_value(new_value):
+            return False
+
+        if str(old_value).strip() == str(new_value).strip():
+            return False
+
+        return True
+
     weekly_history = [
         row for row in all_history
         if is_this_week_date(row.get("changed_at"))
@@ -803,7 +826,7 @@ def kpi():
 
     planned_change_count = sum(
         1 for row in weekly_history
-        if row.get("field_name") == "planned_date"
+        if is_real_planned_date_change(row)
     )
 
     actual_input_count = sum(
@@ -818,8 +841,8 @@ def kpi():
                 approval_count += 1
 
     hold_request_count = sum(
-    1 for row in weekly_history
-    if row.get("field_name") == "hold_request"
+        1 for row in weekly_history
+        if row.get("field_name") == "hold_request"
     )
 
     recent_history = sorted(
@@ -854,16 +877,19 @@ def kpi():
 
     stage_delay_rate_rows = sorted(stage_delay_rate_rows, key=lambda x: x["rate"], reverse=True)
 
+    kpi_reset_date = "2026-05-12"
+
     project_ids_with_plan_change = set(
-        row.get("project_code")
-        for row in all_history
-        if row.get("field_name") == "planned_date"
-    )
+            row.get("project_code")
+            for row in all_history
+            if is_real_planned_date_change(row)
+            and str(row.get("changed_at", ""))[:10] >= kpi_reset_date
+        )
 
     plan_change_rate = round(
-        (len(project_ids_with_plan_change) / len(projects)) * 100,
-        1
-    ) if projects else 0
+            (len(project_ids_with_plan_change) / len(projects)) * 100,
+            1
+        ) if projects else 0
 
     return render_template(
         "kpi.html",
