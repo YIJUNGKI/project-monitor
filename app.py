@@ -1246,16 +1246,15 @@ def update_project(project_id):
         formatted_rows = []
 
         for index, row in enumerate(rows, start=1):
-            values = [
-                f"PM: {row.get('pm', '') or '-'}",
-                f"설계: {row.get('design', '') or '-'}",
-                f"기계: {row.get('machine', '') or '-'}",
-                f"제어: {row.get('control', '') or '-'}",
-                f"영업: {row.get('sales', '') or '-'}",
-            ]
-
             formatted_rows.append(
-                f"{index}행\n" + "\n".join(values)
+                "\n".join([
+                    f"{index}행",
+                    f"PM: {row.get('pm', '') or '-'}",
+                    f"설계: {row.get('design', '') or '-'}",
+                    f"기계: {row.get('machine', '') or '-'}",
+                    f"제어: {row.get('control', '') or '-'}",
+                    f"영업: {row.get('sales', '') or '-'}",
+                ])
             )
 
         return "\n\n".join(formatted_rows) if formatted_rows else "-"

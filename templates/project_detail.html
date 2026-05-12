@@ -384,22 +384,15 @@
             </td>
 
             <td>
-              <div class="note-cell">
-                <input
-                  type="text"
-                  name="note_preview_{{ stage.stage_order }}"
-                  value="{{ stage.note or '' }}"
-                  class="note-inline-input"
-                  autocomplete="off"
-                  readonly
-                >
-
-                <textarea
-                    name="note_{{ stage.stage_order }}"
-                    class="lock-target note-input note-edit-textarea"
-                    rows="3"
-                    data-old-value="{{ stage.note or '' }}"
-                >{{ stage.note or '' }}</textarea>
+              <textarea
+                 name="note_{{ stage.stage_order }}"
+                 class="lock-target note-input note-edit-textarea"
+                 rows="2"
+                 data-old-value="{{ stage.note or '' }}"
+                 style="width:100%; min-height:38px; resize:vertical;"
+                 placeholder="{% if stage.note_help and not stage.note %}{{ stage.note_help }}{% endif %}"
+              >{{ stage.note or '' }}</textarea>
+            </td>
 
                 <div class="note-full-popup">{{ stage.note or '' }}</div>
 
@@ -876,8 +869,8 @@ document.addEventListener('DOMContentLoaded', function () {
               <td>${item.changed_at || '-'}</td>
               <td>${item.stage_order || '-'}</td>
               <td>${item.field_label || '-'}</td>
-              <td>${item.old_value || '-'}</td>
-              <td>${item.new_value || '-'}</td>
+              <td style="white-space:pre-line; min-width:220px;">${item.old_value || '-'}</td>
+              <td style="white-space:pre-line; min-width:220px;">${item.new_value || '-'}</td>
               <td>${item.changed_by || '-'}</td>
               <td>${item.change_reason || '-'}</td>
             </tr>
