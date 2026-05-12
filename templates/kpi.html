@@ -162,7 +162,20 @@
     </div>
 
     {% if recent_history %}
-    <div class="table-wrap">
+
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+      <button type="button" class="btn btn-secondary btn-sm kpi-history-filter-btn" data-filter="all">전체</button>
+      <button type="button" class="btn btn-secondary btn-sm kpi-history-filter-btn" data-filter="planned_date">계획일</button>
+      <button type="button" class="btn btn-secondary btn-sm kpi-history-filter-btn" data-filter="actual_date">실적일</button>
+      <button type="button" class="btn btn-secondary btn-sm kpi-history-filter-btn" data-filter="note">비고</button>
+      <button type="button" class="btn btn-secondary btn-sm kpi-history-filter-btn" data-filter="is_not_applicable">해당없음</button>
+      <button type="button" class="btn btn-secondary btn-sm kpi-history-filter-btn" data-filter="approval">승인</button>
+      <button type="button" class="btn btn-secondary btn-sm kpi-history-filter-btn" data-filter="hold">보류</button>
+      <button type="button" class="btn btn-secondary btn-sm kpi-history-filter-btn" data-filter="team_members">팀구성</button>
+    </div>
+
+    <div class="table-wrap">   
+
       <table class="project-history-table">
         <thead>
           <tr>
@@ -177,7 +190,9 @@
 
         <tbody>
           {% for row in recent_history %}
-          <tr>
+          <tr class="kpi-history-row"
+              data-field-name="{{ row.field_name or '' }}"
+              data-field-label="{{ row.field_label or '' }}">
             <td>{{ row.changed_at or '-' }}</td>
             <td>{{ row.project_code }} / {{ row.project_name }}</td>
             <td>{{ row.stage_order or '-' }}</td>
@@ -201,11 +216,76 @@ document.addEventListener('DOMContentLoaded', function () {
   const openBtn = document.getElementById('kpi-history-open-btn');
   const closeBtn = document.getElementById('kpi-history-close-btn');
   const modal = document.getElementById('kpi-history-modal');
+  const filterButtons = document.querySelectorAll('.kpi-history-filter-btn');
 
   if (!openBtn || !closeBtn || !modal) return;
 
+  function isHoldHistory(row) {
+    const fieldName = row.dataset.fieldName || '';
+    const fieldLabel = row.dataset.fieldLabel || '';
+
+    return (
+      fieldName.indexOf('hold') !== -1 ||
+      fieldLabel.indexOf('보류') !== -1
+    );
+  }
+
+  function isApprovalHistory(row) {
+    const fieldName = row.dataset.fieldName || '';
+    const fieldLabel = row.dataset.fieldLabel || '';
+
+    return (
+      fieldName === 'approval' ||
+      fieldLabel.indexOf('승인') !== -1
+    );
+  }
+
+  function setActiveFilterButton(currentFilter) {
+    filterButtons.forEach(function (btn) {
+      if (btn.dataset.filter === currentFilter) {
+        btn.style.fontWeight = '700';
+        btn.style.borderColor = '#111827';
+        btn.style.background = '#f1f5f9';
+      } else {
+        btn.style.fontWeight = '';
+        btn.style.borderColor = '';
+        btn.style.background = '';
+      }
+    });
+  }
+
+  function applyHistoryFilter(filter) {
+    const rows = document.querySelectorAll('.kpi-history-row');
+
+    rows.forEach(function (row) {
+      const fieldName = row.dataset.fieldName || '';
+      let show = false;
+
+      if (filter === 'all') {
+        show = true;
+      } else if (filter === 'hold') {
+        show = isHoldHistory(row);
+      } else if (filter === 'approval') {
+        show = isApprovalHistory(row);
+      } else {
+        show = fieldName === filter;
+      }
+
+      row.style.display = show ? '' : 'none';
+    });
+
+    setActiveFilterButton(filter);
+  }
+
+  filterButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyHistoryFilter(this.dataset.filter || 'all');
+    });
+  });
+
   openBtn.addEventListener('click', function () {
     modal.style.display = 'flex';
+    applyHistoryFilter('all');
   });
 
   closeBtn.addEventListener('click', function () {
