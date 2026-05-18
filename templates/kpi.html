@@ -3,34 +3,70 @@
 {% block content %}
 
 <section class="page-header">
-  <h1>KPI / 운영현황</h1>
-  <p>{{ week_start }} ~ {{ week_end }} 기준 주간 운영 지표입니다.</p>
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+    <div>
+      <h1>KPI / 운영현황</h1>
+      <p>
+        {{ week_start }} ~ {{ week_end }} 기준 주간 운영 지표입니다.
+        {% if is_current_week %}
+          <span class="badge badge-진행">이번주</span>
+        {% endif %}
+      </p>
+    </div>
+
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="{{ prev_week_url }}" class="btn btn-secondary btn-sm">← 전주</a>
+      <a href="{{ this_week_url }}" class="btn btn-secondary btn-sm">이번주</a>
+      <a href="{{ next_week_url }}" class="btn btn-secondary btn-sm">다음주 →</a>
+    </div>
+  </div>
 </section>
+
+{% macro delta_text(value) %}
+  {% if value > 0 %}
+    <small style="color:#dc2626; font-weight:700;">전주 대비 +{{ value }}</small>
+  {% elif value < 0 %}
+    <small style="color:#2563eb; font-weight:700;">전주 대비 {{ value }}</small>
+  {% else %}
+    <small class="muted">전주 대비 동일</small>
+  {% endif %}
+{% endmacro %}
 
 <section class="card-grid kpi-card-grid">
   <div class="card metric-card">
     <span>이번주 신규 지연</span>
     <strong>{{ summary.new_delay }}</strong>
+    {{ delta_text(summary_delta.new_delay) }}
+  </div>
+
+  <div class="card metric-card">
+    <span>승인 대기</span>
+    <strong>{{ summary.approval_pending }}</strong>
+    {{ delta_text(summary_delta.approval_pending) }}
+  </div>
+
+  <div class="card metric-card">
+    <span>실적일 미입력</span>
+    <strong>{{ summary.missing_actual }}</strong>
+    {{ delta_text(summary_delta.missing_actual) }}
   </div>
 
   <div class="card metric-card">
     <span>계획일 변경</span>
     <strong>{{ summary.planned_change }}</strong>
-  </div>
-
-  <div class="card metric-card">
-    <span>실적일 입력</span>
-    <strong>{{ summary.actual_input }}</strong>
+    {{ delta_text(summary_delta.planned_change) }}
   </div>
 
   <div class="card metric-card">
     <span>승인 완료</span>
     <strong>{{ summary.approval }}</strong>
+    {{ delta_text(summary_delta.approval) }}
   </div>
 
   <div class="card metric-card">
     <span>보류 신청</span>
     <strong>{{ summary.hold_request }}</strong>
+    {{ delta_text(summary_delta.hold_request) }}
   </div>
 </section>
 

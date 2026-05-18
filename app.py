@@ -196,6 +196,33 @@ def parse_date(date_str):
 def now_kst():
     return datetime.now(ZoneInfo("Asia/Seoul"))
 
+def get_week_range(base_date=None):
+    """
+    기준일이 포함된 월~일 주간 범위 반환
+    """
+    if base_date is None:
+        base_date = now_kst().date()
+
+    week_start = base_date - timedelta(days=base_date.weekday())
+    week_end = week_start + timedelta(days=7)
+    return week_start, week_end
+
+
+def parse_week_param(week_text):
+    """
+    URL ?week=YYYY-MM-DD 값을 date로 변환.
+    값이 없거나 잘못되면 오늘 기준.
+    """
+    parsed = parse_date(week_text)
+    return parsed or now_kst().date()
+
+
+def calc_delta(current_value, previous_value):
+    """
+    전주 대비 증감 계산
+    """
+    return current_value - previous_value
+
 def add_days(date_str, days):
     d = parse_date(date_str)
     if not d:
@@ -740,9 +767,15 @@ def dashboard():
 
 @app.route("/kpi")
 def kpi():
+    base_date = parse_week_param(request.args.get("week", "").strip())
+    week_start, week_end = get_week_range(base_date)
+
+    prev_week_start = week_start - timedelta(days=7)
+    prev_week_end = week_start
+    next_week_start = week_start + timedelta(days=7)
+
     today = now_kst().date()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=7)
+    this_week_start, this_week_end = get_week_range(today)
 
     projects = [
         enrich_project(project)
@@ -751,9 +784,7 @@ def kpi():
     ]
 
     all_history = []
-    hold_history = []
 
-    new_delay_count = 0
     stage_delay_count = {}
     stage_total_count = {}
     stage_stay_days = {}
@@ -765,13 +796,6 @@ def kpi():
 
             if stage.get("status") == "지연":
                 stage_delay_count[stage_name] = stage_delay_count.get(stage_name, 0) + 1
-
-            if stage.get("status") == "지연" and stage.get("delay_deadline"):
-                deadline = parse_date(stage.get("delay_deadline"))
-                if deadline:
-                    delay_start = deadline + timedelta(days=1)
-                    if week_start <= delay_start < week_end:
-                        new_delay_count += 1
 
             planned = parse_date(stage.get("planned_date"))
             actual = parse_date(stage.get("actual_date"))
@@ -786,15 +810,9 @@ def kpi():
             item["project_name"] = project.get("name")
             all_history.append(item)
 
-        for row in project.get("hold_history", []):
-            item = dict(row)
-            item["project_code"] = project.get("code")
-            item["project_name"] = project.get("name")
-            hold_history.append(item)
-
-    def is_this_week_date(date_text):
-        d = parse_date(str(date_text)[:10])
-        return d and week_start <= d < week_end
+    def is_date_in_range(date_text, start_date, end_date):
+        d = parse_date(str(date_text or "")[:10])
+        return d and start_date <= d < end_date
 
     def is_empty_history_value(value):
         value = str(value or "").strip()
@@ -809,7 +827,7 @@ def kpi():
             return False
 
         if is_empty_history_value(old_value):
-           return False
+            return False
 
         if is_empty_history_value(new_value):
             return False
@@ -819,31 +837,79 @@ def kpi():
 
         return True
 
-    weekly_history = [
-        row for row in all_history
-        if is_this_week_date(row.get("changed_at"))
-    ]
+    def build_weekly_summary(start_date, end_date):
+        weekly_history = [
+            row for row in all_history
+            if is_date_in_range(row.get("changed_at"), start_date, end_date)
+        ]
 
-    planned_change_count = sum(
-        1 for row in weekly_history
-        if is_real_planned_date_change(row)
-    )
+        new_delay_count = 0
 
-    actual_input_count = sum(
-        1 for row in weekly_history
-        if row.get("field_name") == "actual_date" and row.get("new_value")
-    )
+        for project in projects:
+            for stage in project["stages"]:
+                if stage.get("status") == "지연" and stage.get("delay_deadline"):
+                    deadline = parse_date(stage.get("delay_deadline"))
+                    if deadline:
+                        delay_start = deadline + timedelta(days=1)
+                        if start_date <= delay_start < end_date:
+                            new_delay_count += 1
 
-    approval_count = 0
-    for project in projects:
-        for stage in project["stages"]:
-            if is_this_week_date(stage.get("approval_date")):
-                approval_count += 1
+        planned_change_count = sum(
+            1 for row in weekly_history
+            if is_real_planned_date_change(row)
+        )
 
-    hold_request_count = sum(
-        1 for row in weekly_history
-        if row.get("field_name") == "hold_request"
-    )
+        actual_input_count = sum(
+            1 for row in weekly_history
+            if row.get("field_name") == "actual_date"
+            and not is_empty_history_value(row.get("new_value"))
+        )
+
+        approval_count = 0
+        for project in projects:
+            for stage in project["stages"]:
+                if is_date_in_range(stage.get("approval_date"), start_date, end_date):
+                    approval_count += 1
+
+        hold_request_count = sum(
+            1 for row in weekly_history
+            if row.get("field_name") == "hold_request"
+        )
+
+        approval_pending_count = 0
+        missing_actual_count = 0
+
+        for project in projects:
+            if project.get("status") == "보류":
+                continue
+
+            for stage in project["stages"]:
+                if stage.get("status") == "승인대기":
+                    approval_pending_count += 1
+
+                planned = parse_date(stage.get("planned_date"))
+                actual = parse_date(stage.get("actual_date"))
+
+                if planned and not actual and start_date <= planned < end_date:
+                    missing_actual_count += 1
+
+        return {
+            "new_delay": new_delay_count,
+            "planned_change": planned_change_count,
+            "actual_input": actual_input_count,
+            "approval": approval_count,
+            "hold_request": hold_request_count,
+            "approval_pending": approval_pending_count,
+            "missing_actual": missing_actual_count,
+        }
+
+    summary = build_weekly_summary(week_start, week_end)
+    prev_summary = build_weekly_summary(prev_week_start, prev_week_end)
+
+    summary_delta = {
+        key: calc_delta(summary.get(key, 0), prev_summary.get(key, 0))
+        for key in summary.keys()
+    }
 
     recent_history = sorted(
         all_history,
@@ -867,6 +933,7 @@ def kpi():
     for stage_name, total in stage_total_count.items():
         delayed = stage_delay_count.get(stage_name, 0)
         rate = round((delayed / total) * 100, 1) if total else 0
+
         if delayed > 0:
             stage_delay_rate_rows.append({
                 "stage": stage_name,
@@ -880,28 +947,27 @@ def kpi():
     kpi_reset_date = "2026-05-12"
 
     project_ids_with_plan_change = set(
-            row.get("project_code")
-            for row in all_history
-            if is_real_planned_date_change(row)
-            and str(row.get("changed_at", ""))[:10] >= kpi_reset_date
-        )
+        row.get("project_code")
+        for row in all_history
+        if is_real_planned_date_change(row)
+        and str(row.get("changed_at", ""))[:10] >= kpi_reset_date
+    )
 
     plan_change_rate = round(
-            (len(project_ids_with_plan_change) / len(projects)) * 100,
-            1
-        ) if projects else 0
+        (len(project_ids_with_plan_change) / len(projects)) * 100,
+        1
+    ) if projects else 0
 
     return render_template(
         "kpi.html",
         week_start=week_start,
         week_end=week_end - timedelta(days=1),
-        summary={
-            "new_delay": new_delay_count,
-            "planned_change": planned_change_count,
-            "actual_input": actual_input_count,
-            "approval": approval_count,
-            "hold_request": hold_request_count,
-        },
+        prev_week_url=url_for("kpi", week=prev_week_start.strftime("%Y-%m-%d")),
+        this_week_url=url_for("kpi", week=this_week_start.strftime("%Y-%m-%d")),
+        next_week_url=url_for("kpi", week=next_week_start.strftime("%Y-%m-%d")),
+        is_current_week=(week_start == this_week_start),
+        summary=summary,
+        summary_delta=summary_delta,
         stage_stay_rows=stage_stay_rows,
         stage_delay_rate_rows=stage_delay_rate_rows,
         plan_change_rate=plan_change_rate,
