@@ -44,6 +44,39 @@
   </a>
 </section>
 
+<section class="card filter-card">
+  <form method="get" action="/dashboard" class="filter-form">
+    <div class="field">
+      <label for="keyword">검색</label>
+      <input id="keyword" name="keyword" type="text" value="{{ keyword }}" placeholder="코드, 프로젝트명, 고객사, PM, 단계">
+    </div>
+
+    <div class="field">
+      <label for="status">상태</label>
+      <select id="status" name="status">
+        <option value="">전체</option>
+        {% for item in status_options %}
+        <option value="{{ item }}" {% if status == item %}selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="delay">지연여부</label>
+      <select id="delay" name="delay">
+        <option value="">전체</option>
+        <option value="Y" {% if delay == 'Y' %}selected{% endif %}>지연만</option>
+        <option value="N" {% if delay == 'N' %}selected{% endif %}>정상만</option>
+      </select>
+    </div>
+
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-primary">조회</button>
+      <a href="/dashboard" class="btn btn-secondary">초기화</a>
+    </div>
+  </form>
+</section>
+
 <section class="dashboard-grid dashboard-grid-single">
   <div class="card">
     <div class="section-title">
@@ -51,7 +84,7 @@
     </div>
 
     <section class="toolbar toolbar-guide-right">
-  <div class="result-count">조회 {{ projects|length }}건</div>
+  <div class="result-count">조회 {{ filtered_projects|length }}건</div>
 
   <div class="legend-stack-right">
     <div class="status-legend-box">
@@ -96,7 +129,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for project in projects %}
+          {% for project in filtered_projects %}
           <tr class="
             {% if project.status == '보류' %}row-hold{% endif %}
             {% if project.is_delayed %}row-delayed{% endif %}
@@ -160,6 +193,10 @@
             </td>
 
             <td><a href="/projects/{{ project.id }}" class="table-link">보기</a></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="empty-cell">조건에 맞는 프로젝트가 없습니다.</td>
           </tr>
           {% endfor %}
         </tbody>
