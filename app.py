@@ -757,10 +757,19 @@ def dashboard():
         if p.get("is_delayed") and p.get("status") != "보류"
     ]
 
+    filtered_projects, keyword, status, delay = get_filtered_projects()
+    filtered_projects = sorted(filtered_projects, key=safe_code_sort)
+    status_options = ["진행", "승인대기", "완료", "보류", "지연", "누락"]
+
     return render_template(
         "dashboard.html",
         summary=summary,
         projects=projects,
+        filtered_projects=filtered_projects,
+        keyword=keyword,
+        status=status,
+        delay=delay,
+        status_options=status_options,
         delayed_projects=delayed_projects,
         approval_pending_projects=approval_pending_projects,
     )
