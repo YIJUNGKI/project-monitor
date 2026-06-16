@@ -625,18 +625,12 @@ def safe_code_sort(project):
         return 999999
 
 
-def get_filtered_projects():
-    keyword = request.args.get("keyword", "").strip().lower()
-    status = request.args.get("status", "").strip()
-    delay = request.args.get("delay", "").strip()
+def filter_enriched_projects(enriched_projects, keyword, status, delay):
+    keyword = (keyword or "").strip().lower()
+    status = (status or "").strip()
+    delay = (delay or "").strip()
 
-    enriched_projects = [
-        enrich_project(project)
-        for project in load_projects()
-        if not project.get("is_deleted", False)
-    ]
     filtered = []
-
     for project in enriched_projects:
         searchable = " ".join(
             [
@@ -673,6 +667,20 @@ def get_filtered_projects():
 
         filtered.append(project)
 
+    return filtered
+
+
+def get_filtered_projects():
+    keyword = request.args.get("keyword", "").strip().lower()
+    status = request.args.get("status", "").strip()
+    delay = request.args.get("delay", "").strip()
+
+    enriched_projects = [
+        enrich_project(project)
+        for project in load_projects()
+        if not project.get("is_deleted", False)
+    ]
+    filtered = filter_enriched_projects(enriched_projects, keyword, status, delay)
     return filtered, keyword, status, delay
 
 
@@ -757,8 +765,10 @@ def dashboard():
         if p.get("is_delayed") and p.get("status") != "보류"
     ]
 
-    filtered_projects, keyword, status, delay = get_filtered_projects()
-    filtered_projects = sorted(filtered_projects, key=safe_code_sort)
+    keyword = request.args.get("keyword", "").strip().lower()
+    status = request.args.get("status", "").strip()
+    delay = request.args.get("delay", "").strip()
+    filtered_projects = filter_enriched_projects(projects, keyword, status, delay)
     status_options = ["진행", "승인대기", "완료", "보류", "지연", "누락"]
 
     return render_template(
