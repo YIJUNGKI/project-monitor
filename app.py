@@ -106,6 +106,27 @@ def save_project_stages(project_id, stages):
     redis_set_json(f"pm:stages:{project_id}", stages)
 
 
+def load_stages_map(project_ids):
+    """여러 프로젝트의 저장된 단계 데이터를 한 번의 호출(mget)로 가져온다."""
+    if not project_ids:
+        return {}
+    keys = [f"pm:stages:{pid}" for pid in project_ids]
+    try:
+        values = redis.mget(*keys)
+    except Exception:
+        # mget 미지원/오류 시 개별 호출로 안전하게 폴백 (느려도 멈추지 않음)
+        return {pid: load_project_stages(pid) for pid in project_ids}
+    stages_map = {}
+    for pid, value in zip(project_ids, values):
+        if value is None:
+            stages_map[pid] = []
+        elif isinstance(value, str):
+            stages_map[pid] = json.loads(value)
+        else:
+            stages_map[pid] = value
+    return stages_map
+
+
 def load_project_teams(project_id):
     return redis_get_json(
         f"pm:teams:{project_id}",
@@ -413,8 +434,9 @@ def compute_stage_status(stage_order, assignee_name, planned_date, actual_date, 
     return "누락"
 
 
-def merge_stages(project_id: int):
-    saved_list = load_project_stages(project_id)
+def merge_stages(project_id: int, saved_list=None):
+    if saved_list is None:
+        saved_list = load_project_stages(project_id)
     saved_map = {stage["stage_order"]: stage for stage in saved_list}
     merged = []
 
@@ -570,8 +592,8 @@ def build_stage_mini_view(stages):
     return items
 
 
-def enrich_project(project):
-    stages = merge_stages(project["id"])
+def enrich_project(project, stages_saved=None):
+    stages = merge_stages(project["id"], saved_list=stages_saved)
     
     today = datetime.today().date()
 
@@ -675,10 +697,15 @@ def get_filtered_projects():
     status = request.args.get("status", "").strip()
     delay = request.args.get("delay", "").strip()
 
-    enriched_projects = [
-        enrich_project(project)
+    raw_projects = [
+        project
         for project in load_projects()
         if not project.get("is_deleted", False)
+    ]
+    stages_map = load_stages_map([p["id"] for p in raw_projects])
+    enriched_projects = [
+        enrich_project(project, stages_saved=stages_map.get(project["id"], []))
+        for project in raw_projects
     ]
     filtered = filter_enriched_projects(enriched_projects, keyword, status, delay)
     return filtered, keyword, status, delay
@@ -711,10 +738,15 @@ def master_logout():
 
 @app.route("/dashboard")
 def dashboard():
-    projects = [
-        enrich_project(project)
+    raw_projects = [
+        project
         for project in load_projects()
         if not project.get("is_deleted", False)
+    ]
+    stages_map = load_stages_map([p["id"] for p in raw_projects])
+    projects = [
+        enrich_project(project, stages_saved=stages_map.get(project["id"], []))
+        for project in raw_projects
     ]
 
     projects = sorted(projects, key=safe_code_sort)
