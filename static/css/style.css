@@ -2249,3 +2249,77 @@ section.card form > div[style*="justify-content: flex-end"] .btn-primary {
   cursor: help;
   vertical-align: middle;
 }
+
+/* ===== 프로젝트 현황 배너 (상단 네비, 반짝임 + N 배지) ===== */
+.nav a.status-banner {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 18px;
+  margin-right: 4px;
+  border-radius: 999px;
+  border-bottom: none;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+  background: linear-gradient(110deg, #2563eb 0%, #6d28d9 38%, #c4b5fd 50%, #6d28d9 62%, #2563eb 100%);
+  background-size: 250% 100%;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.55);
+  animation: statusSheen 3s linear infinite, statusGlow 1.8s ease-in-out infinite;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.nav a.status-banner:hover {
+  color: #ffffff;
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.status-banner-text {
+  position: relative;
+  z-index: 1;
+}
+
+.status-banner-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 19px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 6px rgba(239, 68, 68, 0.8);
+  animation: statusBadgePulse 1.2s ease-in-out infinite;
+  z-index: 2;
+}
+
+@keyframes statusSheen {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -130% 0; }
+}
+
+@keyframes statusGlow {
+  0%, 100% { box-shadow: 0 0 7px rgba(99, 102, 241, 0.45); }
+  50%      { box-shadow: 0 0 18px 3px rgba(124, 58, 237, 0.8); }
+}
+
+@keyframes statusBadgePulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav a.status-banner,
+  .status-banner-badge {
+    animation: none;
+  }
+}

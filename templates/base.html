@@ -11,6 +11,10 @@
     <div class="container header-inner">
       <a href="/" class="logo">Project Monitor</a>
       <nav class="nav">
+  <a href="https://project-dashboard-five-tau.vercel.app" target="_blank" rel="noopener" class="status-banner" title="프로젝트 현황 대시보드 열기">
+    <span class="status-banner-text">프로젝트 현황</span>
+    <span class="status-banner-badge">N</span>
+  </a>
   <a href="/dashboard" class="{% if request.path == '/dashboard' %}nav-link-active{% endif %}">대시보드</a>
   <a href="/projects" class="{% if request.path.startswith('/projects') %}nav-link-active{% endif %}">프로젝트 목록</a>
 
